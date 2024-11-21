@@ -234,7 +234,6 @@ const cancelHolidays = async (id) => {
             show_modal_info_holidays.value = false;
         } else if(response.data.status == "Error") {
             toast.error(response.data.text, toast_options/* toast_error_options */)
-
             if (response.data.calendar_data != undefined) {
                 Object.keys(calendar_data).forEach(key => delete calendar_data[key]);
                 Object.assign(calendar_data, response.data.calendar_data);
@@ -242,9 +241,7 @@ const cancelHolidays = async (id) => {
                 Object.assign(holidays_data, response.data.holidays_data);
                 requested_holidays.splice(0, requested_holidays.length);
             }
-
-            modal_info_holidays.cancel_holiday = false;
-
+            modal_info_holidays.cancel_holidays = false;
             show_modal_info_holidays.value = false;
         } 
     });

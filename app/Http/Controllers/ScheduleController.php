@@ -325,15 +325,33 @@ class ScheduleController extends Controller
         $users_schedule = [];
         $users_schedule_index_counter = 0;
         $availability = null;
+        $users_array = $users->toArray();
+        foreach($users_array as $index => $element) { //Sets the object so that these 2 users appear at first index (0) in the final weekly schedule object.
+            if ($element['id'] == 9) {
+                $element_to_move = $element;
+                unset($users_array[$index]);
+                array_unshift($users_array, $element_to_move);
+                break;
+            } 
+            if ($element['id'] == 8) {
+                $element_to_move = $element;
+                unset($users_array[$index]);
+                array_unshift($users_array, $element_to_move);
+                break;
+            } 
+        }
+
+        $users = collect($users_array);
+
         foreach($users as $user_element) {
             $user_week = new \stdClass; //Has a property for each column of the table it will be represented in
             $user_week->user = new \stdClass;
-            $user_week->user->id = $user_element->id;
-            $user_week->user->name = $user_element->name;
+            $user_week->user->id = $user_element["id"];
+            $user_week->user->name = $user_element["name"];
             foreach($available_users_by_day as $date => $data) {
-                foreach($data['users'] as $index => $element) { //Loop to check if user Vicky is in list and move it to index 0.
+                foreach($data['users'] as $index => $element) { //Loop to make sure these 2 users are always asigned the same schedules.
                     $data['users'] = is_array($data['users']) ? $data['users'] : $data['users']->toArray(); //Ensure $data['users'] is an array.
-                    if ($element['id'] == 9 || $element ['id'] == 8) {
+                    if ($element['id'] == 9 || $element['id'] == 8) {
                         $element_to_move = $element;
                         unset($data['users'][$index]);
                         array_unshift($data['users'], $element_to_move);
@@ -348,7 +366,7 @@ class ScheduleController extends Controller
                 $schedules = Schedule::where('day_of_week', $data['day_of_week'])->where('user_availability_id', $availability->id)->get();
 
                 foreach($data['users'] as $index => $user_in_array) {
-                    if($user_week->user->id == $user_in_array['id']) {
+                    if($user_in_array['id'] == $user_week->user->id) {
                         $day = new \stdClass;
                         $day->date = $date;
                         $day->day_of_week = $day_of_week;
@@ -372,7 +390,6 @@ class ScheduleController extends Controller
             if($users_schedule_index_counter < $count){
                 $users_schedule_index_counter++;
             }
-            
         }
 
         return $users_schedule;
@@ -387,8 +404,8 @@ class ScheduleController extends Controller
         return $days[$dayOfWeek - 1]; // Adjust for 1-based index
     }
 
-    private function formattedTime($time) {
-            // Split the time string by `:` and take the first two components (hours and minutes)
+    private function formattedTime($time)
+    { // Split the time string by `:` and take the first two components (hours and minutes)
     list($hours, $minutes) = explode(':', $time);
     return $hours . ':' . $minutes;
     }

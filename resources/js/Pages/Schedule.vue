@@ -229,11 +229,8 @@ const closeEditing = (row_index) => {
 }
 
 const saveChanges = async (week_number, department_id, schedule_data) => {
-    let raw_data = toRaw(schedule_data.weekly_schedule.schedule_data);
-    let data_to_stringify = structuredClone(raw_data);
-
     loading.value = true;
-    await axios.post('/schedule/saveweeklyschedule', {week_number: week_number, department_id: department_id, schedule_data: data_to_stringify}, 
+    await axios.post('/schedule/saveweeklyschedule', {week_number: week_number, department_id: department_id, schedule_data: schedule_data.weekly_schedule.schedule_data}, 
         {headers: {
             'Content-Type': 'application/json',
     }},)
