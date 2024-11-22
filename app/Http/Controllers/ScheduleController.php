@@ -285,7 +285,6 @@ class ScheduleController extends Controller
                 // Exclude the nonworkingdayzone field by converting each user object to an array
                 return collect($user)->except(['nonworkingdayzone', 'job_ranges', 'holidays', 'holiday_zone'])->all();
             });
-
             $counter = $available_users->count();
             $available_users_by_day[$date_string] = [
                 'users' => $available_users,
@@ -320,12 +319,13 @@ class ScheduleController extends Controller
 
         return false; // No non-working day found in this hierarchy
     }
-
+    
     private function getWeeklySchedule($available_users_by_day, $users, $department_id) {
         $users_schedule = [];
         $users_schedule_index_counter = 0;
         $availability = null;
         $users_array = $users->toArray();
+        
         foreach($users_array as $index => $element) { //Sets the object so that these 2 users appear at first index (0) in the final weekly schedule object.
             if ($element['id'] == 9) {
                 $element_to_move = $element;
@@ -340,17 +340,17 @@ class ScheduleController extends Controller
                 break;
             } 
         }
-
+        
         $users = collect($users_array);
+        foreach($users as $user_index => $user_element) {
+            $user_week = []; //Has a property for each column of the table it will be represented in
 
-        foreach($users as $user_element) {
-            $user_week = new \stdClass; //Has a property for each column of the table it will be represented in
-            $user_week->user = new \stdClass;
-            $user_week->user->id = $user_element["id"];
-            $user_week->user->name = $user_element["name"];
             foreach($available_users_by_day as $date => $data) {
+                $day_of_week = $data['day_of_week'];
+                $count = $data['count'];
+                $data['users'] = is_array($data['users']) ? $data['users'] : $data['users']->toArray(); //Ensure $data['users'] is an array.
+                
                 foreach($data['users'] as $index => $element) { //Loop to make sure these 2 users are always asigned the same schedules.
-                    $data['users'] = is_array($data['users']) ? $data['users'] : $data['users']->toArray(); //Ensure $data['users'] is an array.
                     if ($element['id'] == 9 || $element['id'] == 8) {
                         $element_to_move = $element;
                         unset($data['users'][$index]);
@@ -358,40 +358,58 @@ class ScheduleController extends Controller
                         break;
                     } 
                 }
-                $count = $data['count'];
-                $day_of_week = $data['day_of_week'];
-                if($availability == null) {
-                    $availability = UserAvailability::where('department_id', $department_id)->where('users_available', $count)->first();
-                }
-                $schedules = Schedule::where('day_of_week', $data['day_of_week'])->where('user_availability_id', $availability->id)->get();
-
+            
+                
                 foreach($data['users'] as $index => $user_in_array) {
-                    if($user_in_array['id'] == $user_week->user->id) {
+                    if($user_in_array['id'] == $user_element['id']) {
+                        $user = new \stdClass;
+                        $user->date = $date;
+                        $user->id = $user_element['id'];
+                        $user->name = $user_element['name'];
+                        $user->is_non_working_day = $user_in_array['is_non_working_day'];
+                        $user->is_holiday = $user_in_array['is_holiday'];
+                        $user->is_not_available = 0;
+                        $user->is_night_shift = 0;
+                        $user->holiday_state = $user_in_array['holiday_state'];
+                        $user_week[] = $user;
+                        break;
+                    }
+                }
+                    
+                // Retrieve availability and schedules only once per date
+                $availability = $availability ?? UserAvailability::where('department_id', $department_id)
+                ->where('users_available', $count)
+                ->first();
+                $schedules = Schedule::where('day_of_week', $data['day_of_week'])
+                ->where('user_availability_id', $availability->id)
+                ->get();
+
+                $schedules = Schedule::where('day_of_week', $data['day_of_week'])->where('user_availability_id', $availability->id)->get();
+                foreach($data['users'] as $index => $user_in_array) {
+                    if($user_in_array['id'] == $user_element['id']) {
                         $day = new \stdClass;
                         $day->date = $date;
                         $day->day_of_week = $day_of_week;
-                        $day->is_work_on_freedays = $user_in_array['is_work_on_freedays'];
-                        $day->is_non_working_day = $user_in_array['is_non_working_day'];
-                        $day->is_holiday = $user_in_array['is_holiday'];
-                        $day->is_not_available = 0;
-                        $day->is_night_shift = 0;
                         $day->holiday_state = $user_in_array['holiday_state'];
                         $day->is_weekend_day = $schedules[$index]['is_free_day'];
                         $day->start_time = $this->formattedTime($schedules[$index]['start_time']);
                         $day->end_time = $this->formattedTime($schedules[$index]['end_time']);
                         /*                         $identifier = 'user_' . $user_element->id;
                                                     $parentObject->$identifier = $userObject; */
-                        $user_week->$day_of_week = $day;
                     }
                     
-                }
+                }            
+                
+                $users_schedule[$user_index] = $user_week;
+                $user_week = [];
+
             }
-            $users_schedule[$users_schedule_index_counter] = $user_week;
+
             if($users_schedule_index_counter < $count){
                 $users_schedule_index_counter++;
             }
         }
-
+        dd($users_schedule);
         return $users_schedule;
     }
 
@@ -538,3 +556,277 @@ class ScheduleController extends Controller
         }
     }
 }
+
+
+
+
+/* 
+    public function getDailyAvailableUsers($week_number, $department_id)
+    {
+        $year = now()->year;
+        $start_of_week = Carbon::now()->setISODate($year, $week_number)->startOfWeek();
+        $end_of_week = $start_of_week->copy()->endOfWeek();
+
+        // Step 1: Get users in the department with active ranges for the entire week
+        $users = User::select('id', 'name', 'department', 'holiday_zone', 'is_admin')->where('department', $department_id)
+            ->whereHas('jobRanges', function ($query) use ($start_of_week, $end_of_week) {
+                $query->where('start_date', '<=', $end_of_week)
+                    ->where('end_date', '>=', $start_of_week);
+            })->with(['jobRanges' => function ($query) use ($start_of_week, $end_of_week) {
+                $query->select('user_id', 'work_on_freedays')
+                    ->where('start_date', '<=', $end_of_week)
+                    ->where('end_date', '>=', $start_of_week);
+            }])->with(['holidays' => function ($query) use ($start_of_week, $end_of_week) {
+                $query->select('user_id', 'date', 'status_type')
+                ->where('date', '<=', $end_of_week)
+                ->where('date', '>=', $start_of_week);
+            }])
+            ->get();
+
+        $users->each(function ($user) {
+            $user->is_work_on_freedays = $user->jobRanges->contains('work_on_freedays', true)? 1 : 0;
+        });
+
+        $available_users_by_day = [];
+        $day_of_week = 1;
+
+        // Step 2: Loop through each day in the week
+        foreach (CarbonPeriod::create($start_of_week, $end_of_week) as $date) {
+            $date_string = $date->format('Y-m-d');
+
+             foreach($users as $user) {
+                if($this->isNonWorkingDayForUser($date, $user)){
+                    $user->is_non_working_day = 1;
+                } else {
+                    $user->is_non_working_day = 0;
+                }
+                if ($user->holidays->isNotEmpty()) {
+                    foreach ($user->holidays as $key => $value) {
+                        if($value->date == $date_string){
+                            $user->is_holiday = ($value->date == $date_string) ? 1 : 0;
+                            $user->holiday_state = $value-> status_type;
+                        } else {
+                            $user->is_holiday = 0;
+                            $user->holiday_state = 0;
+                        }
+                    }
+                } else {
+                    $user->is_holiday = 0;
+                    $user->holiday_state = 0;
+                }
+                
+            }
+
+            // Filter out users with non-working days or holidays
+            $available_users = $users->map(function ($user) {
+                // Exclude the nonworkingdayzone field by converting each user object to an array
+                return collect($user)->except(['nonworkingdayzone', 'job_ranges', 'holidays', 'holiday_zone'])->all();
+            });
+            dd($available_users);
+            $counter = $available_users->count();
+            $available_users_by_day[$date_string] = [
+                'users' => $available_users,
+                'count' => $available_users->count(),
+                'day_of_week' => $day_of_week
+            ];
+
+            $day_of_week++;
+        }
+        
+        return $this->getWeeklySchedule($available_users_by_day, $users, $department_id);;
+    }
+
+
+
+
+    private function getWeeklySchedule($available_users_by_day, $users, $department_id) {
+        $users_schedule = [];
+        $users_schedule_index_counter = 0;
+        $availability = null;
+        $users_array = $users->toArray();
+        foreach($users_array as $index => $element) { //Sets the object so that these 2 users appear at first index (0) in the final weekly schedule object.
+            if ($element['id'] == 9) {
+                $element_to_move = $element;
+                unset($users_array[$index]);
+                array_unshift($users_array, $element_to_move);
+                break;
+            } 
+            if ($element['id'] == 8) {
+                $element_to_move = $element;
+                unset($users_array[$index]);
+                array_unshift($users_array, $element_to_move);
+                break;
+            } 
+        }
+
+        $users = collect($users_array);
+        dd($users);
+        foreach($users as $user_element) {
+            $user_week = new \stdClass; //Has a property for each column of the table it will be represented in
+            $user_week->user = new \stdClass;
+            $user_week->user->id = $user_element["id"];
+            $user_week->user->name = $user_element["name"];
+            foreach($available_users_by_day as $date => $data) {
+                foreach($data['users'] as $index => $element) { //Loop to make sure these 2 users are always asigned the same schedules.
+                    $data['users'] = is_array($data['users']) ? $data['users'] : $data['users']->toArray(); //Ensure $data['users'] is an array.
+                    if ($element['id'] == 9 || $element['id'] == 8) {
+                        $element_to_move = $element;
+                        unset($data['users'][$index]);
+                        array_unshift($data['users'], $element_to_move);
+                        break;
+                    } 
+                }
+                $count = $data['count'];
+                $day_of_week = $data['day_of_week'];
+                if($availability == null) {
+                    $availability = UserAvailability::where('department_id', $department_id)->where('users_available', $count)->first();
+                }
+                $schedules = Schedule::where('day_of_week', $data['day_of_week'])->where('user_availability_id', $availability->id)->get();
+                foreach($data['users'] as $index => $user_in_array) {
+                    if($user_in_array['id'] == $user_week->user->id) {
+                        $day = new \stdClass;
+                        $day->date = $date;
+                        $day->day_of_week = $day_of_week;
+                        $day->is_work_on_freedays = $user_in_array['is_work_on_freedays'];
+                        $day->is_non_working_day = $user_in_array['is_non_working_day'];
+                        $day->is_holiday = $user_in_array['is_holiday'];
+                        $day->is_not_available = 0;
+                        $day->is_night_shift = 0;
+                        $day->holiday_state = $user_in_array['holiday_state'];
+                        $day->is_weekend_day = $schedules[$index]['is_free_day'];
+                        $day->start_time = $this->formattedTime($schedules[$index]['start_time']);
+                        $day->end_time = $this->formattedTime($schedules[$index]['end_time']);
+                                                    $user_week->$day_of_week = $day;
+                                                }
+                                                
+                                            }
+                                        }
+                                        $users_schedule[$users_schedule_index_counter] = $user_week;
+                                        if($users_schedule_index_counter < $count){
+                                            $users_schedule_index_counter++;
+                                        }
+                                    }
+                                    
+                                    return $users_schedule;
+                                }
+
+
+
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* 2nd try
+
+
+private function getWeeklySchedule($available_users_by_day, $users, $department_id) {
+        $users_schedule = [];
+        $users_schedule_index_counter = 0;
+        $availability = null;
+        $users_array = $users->toArray();
+        
+        foreach($users_array as $index => $element) { //Sets the object so that these 2 users appear at first index (0) in the final weekly schedule object.
+            if ($element['id'] == 9) {
+                $element_to_move = $element;
+                unset($users_array[$index]);
+                array_unshift($users_array, $element_to_move);
+                break;
+            } 
+            if ($element['id'] == 8) {
+                $element_to_move = $element;
+                unset($users_array[$index]);
+                array_unshift($users_array, $element_to_move);
+                break;
+            } 
+        }
+        
+        $users = collect($users_array);
+        
+        foreach($users as $user_index => $user_element) {
+            $user_week = []; //Has a property for each column of the table it will be represented in
+            $user_days = [];
+            $user_index = [];
+            
+            foreach($available_users_by_day as $date => $data) {
+                $day_of_week = $data['day_of_week'];
+                $count = $data['count'];
+                $data['users'] = is_array($data['users']) ? $data['users'] : $data['users']->toArray(); //Ensure $data['users'] is an array.
+                
+                foreach($data['users'] as $index => $element) { //Loop to make sure these 2 users are always asigned the same schedules.
+                    if ($element['id'] == 9 || $element['id'] == 8) {
+                        $element_to_move = $element;
+                        unset($data['users'][$index]);
+                        array_unshift($data['users'], $element_to_move);
+                        break;
+                    } 
+                }
+            
+            
+                foreach($data['users'] as $index => $user_in_array) {
+                    if($user_in_array['id'] == $user_element['id']) {
+                        $user = new \stdClass;
+                        $user->date = $date;
+                        $user->id = $user_element['id'];
+                        $user->name = $user_element['name'];
+                        $user->is_non_working_day = $user_in_array['is_non_working_day'];
+                        $user->is_holiday = $user_in_array['is_holiday'];
+                        $user->is_not_available = 0;
+                        $user->is_night_shift = 0;
+                        $user->holiday_state = $user_in_array['holiday_state'];
+                        $user_index[] = $user; 
+                    }
+                    
+                }
+                    
+                // Retrieve availability and schedules only once per date
+                $availability = $availability ?? UserAvailability::where('department_id', $department_id)
+                ->where('users_available', $count)
+                ->first();
+                $schedules = Schedule::where('day_of_week', $data['day_of_week'])
+                ->where('user_availability_id', $availability->id)
+                ->get();
+
+                $schedules = Schedule::where('day_of_week', $data['day_of_week'])->where('user_availability_id', $availability->id)->get();
+                foreach($data['users'] as $index => $user_in_array) {
+                    if($user_in_array['id'] == $user_element['id']) {
+                        $day = new \stdClass;
+                        $day->date = $date;
+                        $day->day_of_week = $day_of_week;
+                        $day->holiday_state = $user_in_array['holiday_state'];
+                        $day->is_weekend_day = $schedules[$index]['is_free_day'];
+                        $day->start_time = $this->formattedTime($schedules[$index]['start_time']);
+                        $day->end_time = $this->formattedTime($schedules[$index]['end_time']);
+                                                 $identifier = 'user_' . $user_element->id;
+                                                    $parentObject->$identifier = $userObject; 
+                                                }
+                    
+                                            }            
+                                            
+                                            $user_days = $user_index;
+                                        }
+                                        $user_week[] = $user_days;
+                                        $users_schedule[] = $user_week;
+                                        $users_schedule[$users_schedule_index_counter] = $user_week;
+                                        if($users_schedule_index_counter < $count){
+                                            $users_schedule_index_counter++;
+                                        }
+                                    }
+                                    dd($users_schedule);
+                                    return $users_schedule;
+                                }
+
+
+
+*/
