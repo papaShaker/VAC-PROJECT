@@ -1,7 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head } from '@inertiajs/vue3';
-import { ref, reactive, onMounted, onBeforeMount, toRaw } from 'vue';
+import { ref, reactive, onMounted, onBeforeMount, toRaw,} from 'vue';
 import axios from 'axios';
 import moment from 'moment';
 import { DateTime } from 'luxon';
@@ -11,14 +11,18 @@ const props = defineProps({
     departments: Array,
 });
 
+const weekly_schedules_for_month = reactive([]);
 const weekly_schedule = reactive({});
 const today = new Date();
+const consolidated_schedules = reactive([]);
 const week_date_range_dates = reactive([]);
-const week_numbers_by_month = reactive([]);
+const week_numbers_by_month = reactive([]); /* STORES WEEK NUMBERS FOR SELECTED MONTH */
 const week_dates_by_month = reactive([]);
 const selected_department_id = ref(null);
 const selected_month = ref(null);
+const selected_user_id = ref('');
 const months = reactive([]);
+const selected_month_index = ref(null);
 const selected_department_name = ref(null);
 const selected_month_name = ref(null);
 const selected_week = ref(null);
@@ -63,6 +67,27 @@ const getWeeklySchedule = async (week_numb_param, dep_id_param) => {
     });
 };
 
+const getWeeklySchedulesForMonth = async (dep_id_param) => {
+    console.log(week_numbers_by_month);
+    Object.keys(weekly_schedules_for_month).forEach(key => {
+            delete weekly_schedules_for_month[key];
+    });
+    for (let week_numb_param of week_numbers_by_month) {
+        console.log("ENTRARARARARARAR")
+        try {
+            let response = await axios.post('/schedule/weekly/' + week_numb_param + '/' + dep_id_param);
+            Object.assign(weekly_schedules_for_month, response.data);
+
+            if (response.data.status) {
+                toast.success(`${response.data.message}`, toast_options);
+            }
+        } catch (error) {
+            toast.error(`${response.data.message}`, toast_options);
+        }
+    
+    }
+    console.log(weekly_schedules_for_month);
+}
 
 /* const getWeekNumber = (date) => {
     let first_jan = new Date(date.getFullYear(), 0, 1);
@@ -149,6 +174,7 @@ const fetchWeekNumbersByMonth = async (year, month) => {
             week_numbers_by_month.length = 0; // Clear the existing data (optional)
             week_numbers_by_month.push(...response.data); // Add new data to the reactive array
             console.log("entra");
+            console.log(week_numbers_by_month);
         })
 }
     
@@ -171,16 +197,19 @@ const generateMonthOptions = async () => {
         'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
         'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
     ];
+
     for (let i = 0; i < 12; i++) {
         months.push({
             label: `${monthNames[i]} ${currentYear}`,
-            value: `${currentYear}-${String(i + 1).padStart(2, '0')}`
+            value: `${currentYear}-${String(i + 1).padStart(2, '0')}`,
+            month: (i + 1),
         });
     }
     months.push({
         label: `Enero ${currentYear + 1}`,
         value: `${currentYear + 1}-01`
     });
+
 };
 
 const selected_month_label = () => {
@@ -188,6 +217,7 @@ const selected_month_label = () => {
     let selectedMonth = months.find(month => month.value === selected_month.value);
     if (selectedMonth) {
         selected_month_name.value = selectedMonth.label; // Set the label if found
+        selected_month_index.value = selectedMonth.month;
         console.log("Selected month label:", selected_month_name.value);
     } else {
         selected_month_name.value = "null"; // Set to "null" if not found
@@ -218,7 +248,6 @@ function formatTimeString(timeString) {
 }
 
 const startEditing = (row_index) =>  {
-    console.log("entra | row: " + row_index);
     is_editing.value = true;
     edit_state.row = row_index;
 }
@@ -251,6 +280,45 @@ const saveChanges = async (week_number, department_id, schedule_data) => {
 const updateHolidayCheckbox = (user_day_data, is_checked) => {
     user_day_data.is_holiday = is_checked; // Update `is_holiday`
     user_day_data.holiday_state = is_checked ? 2 : 0; // Update `holiday_state` (set to null or another default when unchecked)
+}
+
+const consolidateSchedules = () => {
+    consolidated_schedules.length = 0;
+    weekly_schedule.schedule_data.users.forEach((user, index) => {
+        if (index > weekly_schedule.schedule_data.schedules.length) {
+            let schedule = weekly_schedule.schedule_data.schedules[index];
+
+            consolidated_schedules.push({
+                date: user.date,
+                day_of_week: schedule.day_of_week,
+                is_weekend_day: schedule.is_weekend_day,
+                start_time: schedule.start_time,
+                end_time: schedule.end_time,
+                id: user.id,
+                name: user.name,
+                is_non_working_day: user.is_non_working_day,
+                is_holiday: user.is_holiday,
+                holiday_state: user.holiday_state,
+                is_not_available: user.is_not_available,
+                is_night_shift: user.is_night_shift,
+                is_fixed: user.is_fixed,
+            })
+        }
+    })
+}
+
+const moveUser = (index, direction) => {
+      const users = weekly_schedule.weekly_schedule.schedule_data.users;
+
+      if (direction === "up" && index >= 1) {
+        // Swap the current user with the one above
+        [users[index], users[index - 1]] = [users[index - 1], users[index]];
+        edit_state.row = (index - 1);
+      } else if (direction === "down" && index < users.length - 1) {
+        // Swap the current user with the one below
+        [users[index], users[index + 1]] = [users[index + 1], users[index]];
+        edit_state.row = (index + 1);
+      }
 }
 
 onBeforeMount(async () => {
@@ -302,7 +370,7 @@ onMounted(async () => {
                                 <select
                                     class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                                     :disabled="!selected_department_id" v-model="selected_month"
-                                    @change="selected_month_label(); getWeeksForMonth(getSelectedYear(selected_month), getSelectedMonth(selected_month))">
+                                    @change="selected_month_label(); getWeeksForMonth(getSelectedYear(selected_month), getSelectedMonth(selected_month)); fetchWeekNumbersByMonth(getSelectedYear(selected_month), selected_month_index); getWeeklySchedulesForMonth(selected_department_id)">
                                     <option value="" disabled selected>Selecciona un mes</option>
                                     <!-- Placeholder option -->
                                     <option v-for="month in months" :key="month.value" :value="month.value">
@@ -402,41 +470,62 @@ onMounted(async () => {
                                 </thead>
                                 <tbody>
                                     <!-- Loop through each user data array -->
-                                    <tr v-for="(user, user_index) in weekly_schedule.weekly_schedule.schedule_data" :key="user_index" class=" bg-white border-b dark:bg-gray-800 dark:border-gray-500" :class="[(user.user.id == 8 || user.user.id == 9) ? 'reduced_contract' : '']"><!-- :class="[(user.user.id == 8 || user.user.id == 9) ? 'reduced_contract' : '']" -->
+                                    <tr v-for="(user, user_index) in weekly_schedule.weekly_schedule.schedule_data.users" :key="user_index" class=" bg-white border-b dark:bg-gray-800 dark:border-gray-500" :class="[(user[user_index].id == 8 || user[user_index].id == 9) ? 'reduced_contract' : '']"><!-- :class="[(user.user.id == 8 || user.user.id == 9) ? 'reduced_contract' : '']" -->
                                             <td scope="row"
                                                 class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l bg-gray-600 dark:border-gray-500 dark:text-white"
-                                                :class="[(user.user.id == 8 || user.user.id == 9) ? 'reduced_contract' : '',]"
-                                                > <i class="fa-solid fa-user"></i> {{ user.user.name }}</td>
-                                            <td v-for="(day, day_index) in Object.keys(user).filter(key => key !== 'user')" :key="day_index" scope="row"
-                                                class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l dark:border-gray-500 dark:text-white"
-                                                :class="[(user[day].is_night_shift) ? 'is_night_shift' : '',
-                                                        (user[day].start_time === '00:00' && user[day].end_time === '00:00' && (user.user.id == 8 || user.user.id == 9)) ? 'free_day reduced_contract' : 
-                                                        (user[day].start_time === '00:00' && user[day].end_time === '00:00' && (user[day].is_weekend_day)) ? 'free_day' : user[day].is_weekend_day ? 'free_day' : '', 
-                                                        (user[day].is_holiday) ? 'is_confirmed_holiday' : '', 
-                                                        (user[day].is_not_available) ? 'is_not_available' : '', ]">
+                                                :class="[(user[user_index].id == 8 || user[user_index].id == 9) ? 'reduced_contract' : '',]"
+                                                >
                                                 <template v-if="is_editing && edit_state.row === user_index">
-                                                    <select v-model="user[day].start_time" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full p-1.5 my-1 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
-                                                        <option selected disabled default :value="user[day].start_time">{{ user[day].start_time }}</option>
+                                                    <i class="fa-solid fa-user"></i> {{ user[user_index].name }}
+                                                        <button
+                                                            @click="moveUser(user_index, 'up')" 
+                                                            :disabled="user_index === 0" 
+                                                            class="btn btn-sm btn-primary border mx-1 border-green-200 transition ease-in-out duration-300 hover:text-green-400"
+                                                            >
+                                                            <i class="transition ease-in-out duration-300 text-xm text-green-500 hover:text-green-600 m-2 fa-solid fa-arrow-up"></i>
+                                                        </button>
+                                                        <button
+                                                            @click="moveUser(user_index, 'down')" 
+                                                            :disabled="user_index === weekly_schedule.weekly_schedule.schedule_data.users.length - 1" 
+                                                            class="btn btn-sm btn-secondary border mx-1 border-red-200 transition ease-in-out duration-300 hover:text-red-400"
+                                                            >
+                                                            <i class="transition ease-in-out duration-300 text-xm text-red-500 hover:text-red-400 m-2 fa-solid fa-arrow-down"></i>
+                                                        </button>
+                                                </template>
+                                                <template v-else>
+                                                    <i class="fa-solid fa-user"></i> {{ user[user_index].name }}
+                                                </template>
+                                            </td>
+                                            <td v-for="(schedule, schedule_index) in weekly_schedule.weekly_schedule.schedule_data.schedules[user_index]" :key="schedule_index" scope="row"
+                                                class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l dark:border-gray-500 dark:text-white"
+                                                :class="[(user[schedule_index].is_night_shift) ? 'is_night_shift' : '',
+                                                        (schedule.start_time === '00:00' && schedule.end_time === '00:00' && (user[user_index].id == 8 || user[user_index].id == 9)) ? 'free_day reduced_contract' : 
+                                                        (schedule.start_time === '00:00' && schedule.end_time === '00:00' && (schedule.is_weekend_day)) ? 'free_day' : schedule.is_weekend_day ? 'free_day' : '', 
+                                                        (user[schedule_index].is_holiday) ? 'is_confirmed_holiday' : '', 
+                                                        (user[schedule_index].is_not_available) ? 'is_not_available' : '', ]">
+                                                <template v-if="is_editing && edit_state.row === user_index">
+                                                    <select v-model="schedule.start_time" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full p-1.5 my-1 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                                        <option selected disabled default :value="schedule.start_time">{{ schedule.start_time }}</option>
                                                         <option v-for="(value, key) in schedule_hour_selector" :key="key" :value="key">{{ value }}</option>
                                                     </select>
-                                                    <select v-model="user[day].end_time" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full p-1.5 my-1 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
-                                                        <option selected :value="user[day].end_time">{{ user[day].end_time }}</option>
+                                                    <select v-model="schedule.end_time" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full p-1.5 my-1 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                                        <option selected :value="schedule.end_time">{{ schedule.end_time }}</option>
                                                         <option v-for="(value, key) in schedule_hour_selector" :key="key" :value="key">{{ value }}</option>
                                                     </select>
                                                     <div class="flex justify-center">
-                                                        <input type="checkbox" v-model="user[day].is_weekend_day" :checked="user[day].is_weekend_day === true" class="mr-1 w-3.5 h-3.5 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-green-500 dark:border-gray-600"/>
-                                                        <input type="checkbox" v-model="user[day].is_holiday" @change="updateHolidayCheckbox(user[day], $event.target.checked)" :checked="user[day].is_holiday === true" class="mr-1 w-3.5 h-3.5 text-yellow-500 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-yellow-500 dark:border-gray-600"/>
-                                                        <input type="checkbox" v-model="user[day].is_night_shift" :checked="user[day].is_night_shift === true" class="mr-1 w-3.5 h-3.5 text-red-400 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-red-400 dark:border-gray-600"/>
-                                                        <input type="checkbox" v-model="user[day].is_not_available" :checked="user[day].is_not_available === true" class="mr-1 w-3.5 h-3.5 text-yellow-300 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-yellow-200 dark:border-gray-600"/>
+                                                        <input type="checkbox" v-model="schedule.is_weekend_day" :checked="schedule.is_weekend_day === true" class="mr-1 w-3.5 h-3.5 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-green-500 dark:border-gray-600"/>
+                                                        <input type="checkbox" v-model="user[schedule_index].is_holiday" @change="updateHolidayCheckbox(user[schedule_index], $event.target.checked)" :checked="user[schedule_index].is_holiday === true" class="mr-1 w-3.5 h-3.5 text-yellow-500 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-yellow-500 dark:border-gray-600"/>
+                                                        <input type="checkbox" v-model="user[schedule_index].is_night_shift" :checked="user[schedule_index].is_night_shift === true" class="mr-1 w-3.5 h-3.5 text-red-400 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-red-400 dark:border-gray-600"/>
+                                                        <input type="checkbox" v-model="user[schedule_index].is_not_available" :checked="user[schedule_index].is_not_available === true" class="mr-1 w-3.5 h-3.5 text-yellow-300 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-yellow-200 dark:border-gray-600"/>
                                                     </div>
                                                 </template>
                                                 <template v-else>
                                                     <!-- {{ day_index }}: {{ day }} -->
-                                                    {{ user[day].is_not_available ? 'BAJA' :
-                                                    user[day].start_time === '00:00' && user[day].end_time === '00:00' && user[day].is_weekend_day ? 'LIBRE' : 
-                                                    user[day].is_weekend_day ? 'LIBRE' :
-                                                    user[day].is_holiday && user[day].holiday_state ===2 ? 'VACACIONES' :
-                                                    user[day].start_time + ' - ' + user[day].end_time }}
+                                                    {{ user[schedule_index].is_not_available ? 'BAJA' :
+                                                    schedule.start_time === '00:00' && schedule.end_time === '00:00' && schedule.is_weekend_day ? 'LIBRE' : 
+                                                    schedule.is_weekend_day ? 'LIBRE' :
+                                                    user[schedule_index].is_holiday && user[schedule_index].holiday_state ===2 ? 'VACACIONES' :
+                                                    schedule.start_time + ' - ' + schedule.end_time }}
                                                 </template>
                                             </td>
                                             <td class="w-14 pl-2 flex-end">
