@@ -38,6 +38,7 @@ const schedule_hour_selector = {
 }
 const is_editing = ref(false);
 const edit_state = reactive({
+    table: null,
     row: null,
     //column: null,
 })
@@ -265,14 +266,17 @@ function formatTimeString(timeString) {
     return `${hours}:${minutes}`;
 }
 
-const startEditing = (row_index) =>  {
+const startEditing = (row_index, table_index) =>  {
+    console.log("table Index: " + table_index);
     is_editing.value = true;
     edit_state.row = row_index;
+    edit_state.table = table_index;
 }
 
-const closeEditing = (row_index) => {
+const closeEditing = (row_index, table_index) => {
     is_editing.value = false;
     edit_state.row = null;
+    edit_state.table = null;
 }
 
 const saveChanges = async (week_number, department_id, schedule_data) => {
@@ -338,8 +342,9 @@ const consolidateSchedules = () => {
     })
 }
 
-const moveUser = (index, direction) => {
-      const users = weekly_schedule.schedule_data.users;
+const moveUser = (array, index, direction) => {
+    console.log(weekly_schedule);
+    const users = array;
 
       if (direction === "up" && index >= 1) {
         // Swap the current user with the one above
@@ -481,7 +486,7 @@ onMounted(async () => {
                     <!-- START MULTI TABLES -->
                     <div v-if="selected_month && !selected_week" class="pb-14 grid items-center justify-center text-gray-900 dark:text-gray-100">
                         <div v-for="(weekly_schedule, weekly_schedule_index) in weekly_schedules_for_month" :key="weekly_schedule_index" class="relative overflow-x-auto my-5">
-                            <h4 v-if="Object.keys(weekly_schedule).length > 0" class="header m-2"> Semana: <span class="bold text-violet-400"> {{ weekly_schedule.week_number }} </span> | <span class="bold text-green-200"> {{ getFirstElement(weekly_schedule.schedule_data.schedules[0]).date }} </span> a <span class="bold text-green-200"> {{ getLastElement(weekly_schedule.schedule_data.schedules[0]).date }} </span> | 
+                            <h4 v-if="Object.keys(weekly_schedule).length > 0" class="header m-2"> Semana: <span class="bold text-violet-400"> {{ weekly_schedule.week_number }} </span> | <span class="bold text-green-200"> {{ formatDateToDDMMYYYY(getFirstElement(weekly_schedule.schedule_data.schedules[0]).date) }} </span> a <span class="bold text-green-200"> {{ formatDateToDDMMYYYY(getLastElement(weekly_schedule.schedule_data.schedules[0]).date) }} </span> | 
                                 <button @click="getWeeklySchedule(weekly_schedule.week_number, selected_department_id), closeEditing()" class="text-yellow-300"><i class="text-md text-yellow-300 fa-solid fa-rotate"></i> Recargar tabla</button> |
                                 <button @click="saveChanges(weekly_schedule.week_number, selected_department_id, weekly_schedule), closeEditing()" class="text-green-400"><i class="text- text-green-400 fa-solid fa-floppy-disk"></i> Grabar imagen</button>
                             </h4>
@@ -511,17 +516,17 @@ onMounted(async () => {
                                                 class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l bg-gray-600 dark:border-gray-500 dark:text-white"
                                                 :class="[(user[user_index].id == 8 || user[user_index].id == 9) ? 'reduced_contract' : '',]"
                                                 >
-                                                <template v-if="is_editing && edit_state.row === user_index">
+                                                <template v-if="is_editing && edit_state.row === user_index && edit_state.table === weekly_schedule_index">
                                                     <i class="fa-solid fa-user"></i> {{ user[user_index].name }}
                                                         <button
-                                                            @click="moveUser(user_index, 'up')" 
+                                                            @click="moveUser(weekly_schedule, user_index, 'up')" 
                                                             :disabled="user_index === 0" 
                                                             class="btn btn-sm btn-primary border mx-1 border-green-200 transition ease-in-out duration-300 hover:text-green-400"
                                                             >
                                                             <i class="transition ease-in-out duration-300 text-xm text-green-500 hover:text-green-600 m-2 fa-solid fa-arrow-up"></i>
                                                         </button>
                                                         <button
-                                                            @click="moveUser(user_index, 'down')" 
+                                                            @click="moveUser(weekly_schedule, user_index, 'down')" 
                                                             :disabled="user_index === weekly_schedule.schedule_data.users.length - 1" 
                                                             class="btn btn-sm btn-secondary border mx-1 border-red-200 transition ease-in-out duration-300 hover:text-red-400"
                                                             >
@@ -539,7 +544,7 @@ onMounted(async () => {
                                                         (schedule.start_time === '00:00' && schedule.end_time === '00:00' && (schedule.is_weekend_day)) ? 'free_day' : schedule.is_weekend_day ? 'free_day' : '', 
                                                         (user[schedule_index].is_holiday) ? 'is_confirmed_holiday' : '', 
                                                         (user[schedule_index].is_not_available) ? 'is_not_available' : '', ]">
-                                                <template v-if="is_editing && edit_state.row === user_index">
+                                                <template v-if="is_editing && edit_state.row === user_index && edit_state.table === weekly_schedule_index">
                                                     <select v-model="schedule.start_time" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full p-1.5 my-1 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
                                                         <option selected disabled default :value="schedule.start_time">{{ schedule.start_time }}</option>
                                                         <option v-for="(value, key) in schedule_hour_selector" :key="key" :value="key">{{ value }}</option>
@@ -565,11 +570,11 @@ onMounted(async () => {
                                                 </template>
                                             </td>
                                             <td class="w-14 pl-2 flex-end">
-                                                <template v-if="is_editing && edit_state.row === user_index">
-                                                    <button @click="closeEditing(user_index)"><i class="p-1 m-1 text-2xl text-red-400 fa-solid fa-xmark"></i></button>
+                                                <template v-if="is_editing && edit_state.row === user_index && edit_state.table === weekly_schedule_index">
+                                                    <button @click="closeEditing(user_index, weekly_schedule_index)"><i class="p-1 m-1 text-2xl text-red-400 fa-solid fa-xmark"></i></button>
                                                 </template>
                                                 <template v-else>
-                                                    <button @click="startEditing(user_index)"><i class="p-1 m-1 text-2xl text-yellow-200 fa-regular fa-pen-to-square"></i></button>
+                                                    <button @click="startEditing(user_index, weekly_schedule_index)" :disabled="is_editing" :class="[(is_editing) ? 'disabled' : '']"><i class="p-1 m-1 text-2xl text-yellow-200 fa-regular fa-pen-to-square" :class="[(is_editing) ? 'disabled' : '']"></i></button>
                                                 </template>
                                             </td>
                                     </tr>
@@ -618,15 +623,15 @@ onMounted(async () => {
                                                 <template v-if="is_editing && edit_state.row === user_index">
                                                     <i class="fa-solid fa-user"></i> {{ user[user_index].name }}
                                                         <button
-                                                            @click="moveUser(user_index, 'up')" 
+                                                            @click="moveUser(weekly_schedule[0], user_index, 'up')" 
                                                             :disabled="user_index === 0" 
                                                             class="btn btn-sm btn-primary border mx-1 border-green-200 transition ease-in-out duration-300 hover:text-green-400"
                                                             >
                                                             <i class="transition ease-in-out duration-300 text-xm text-green-500 hover:text-green-600 m-2 fa-solid fa-arrow-up"></i>
                                                         </button>
                                                         <button
-                                                            @click="moveUser(user_index, 'down')" 
-                                                            :disabled="user_index === weekly_schedule.schedule_data.users.length - 1" 
+                                                            @click="moveUser(weekly_schedule[0], user_index, 'down')" 
+                                                            :disabled="user_index === weekly_schedule[0].schedule_data.users.length - 1" 
                                                             class="btn btn-sm btn-secondary border mx-1 border-red-200 transition ease-in-out duration-300 hover:text-red-400"
                                                             >
                                                             <i class="transition ease-in-out duration-300 text-xm text-red-500 hover:text-red-400 m-2 fa-solid fa-arrow-down"></i>
@@ -641,7 +646,7 @@ onMounted(async () => {
                                                 :class="[(user[schedule_index].is_night_shift) ? 'is_night_shift' : '',
                                                         (schedule.start_time === '00:00' && schedule.end_time === '00:00' && (user[user_index].id == 8 || user[user_index].id == 9)) ? 'free_day reduced_contract' : 
                                                         (schedule.start_time === '00:00' && schedule.end_time === '00:00' && (schedule.is_weekend_day)) ? 'free_day' : schedule.is_weekend_day ? 'free_day' : '', 
-                                                        (user[schedule_index].is_holiday) ? 'is_confirmed_holiday' : '', 
+                                                        (user[schedule_index].is_holiday && user[schedule_index].holiday_state ===2) ? 'is_confirmed_holiday' : '', 
                                                         (user[schedule_index].is_not_available) ? 'is_not_available' : '', ]">
                                                 <template v-if="is_editing && edit_state.row === user_index">
                                                     <select v-model="schedule.start_time" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full p-1.5 my-1 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
@@ -758,6 +763,10 @@ onMounted(async () => {
     border: 2px #f87171;
     box-shadow: inset 0 0 0 4px #f87171;
     z-index: 15;
+}
+
+.disabled{
+    color: #928f70 !important;
 }
 
 @media (max-width: 975px) {
