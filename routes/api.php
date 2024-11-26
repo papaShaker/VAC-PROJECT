@@ -37,4 +37,5 @@ Route::middleware('auth:sanctum')->get('/department_name/{id}', [DepartmentContr
 /* Route::middleware('auth:sanctum')->get('/schedule/weekly/{week_number}/{department_id}', [ScheduleController::class, 'weeklySchedule']); */
 Route::middleware('auth:sanctum')->get('/week_dates/{year}/{week_number}', [ScheduleController::class, 'getDatesForWeek']);
 Route::middleware('auth:sanctum')->get('/week_numbers_by_month/{year}/{month}', [ScheduleController::class, 'getWeekNumbersForMonth']);
+Route::middleware('auth:sanctum')->get('/weekly_schedules_for_month/{department_id}/{year}/{month}', [ScheduleController::class, 'getWeeklySchedulesForMonth']);
 

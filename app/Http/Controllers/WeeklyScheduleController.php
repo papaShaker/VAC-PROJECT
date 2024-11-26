@@ -50,6 +50,7 @@ class WeeklyScheduleController extends Controller
     { //dd("AQUÍ");
         
         $request = request(); // Retrieve the current request
+        //dd($request);
         // If no parameters are passed, use the request data
         if ($request->has(['department_id', 'week_number', 'schedule_data'])) {
             //dd($request);
@@ -60,8 +61,8 @@ class WeeklyScheduleController extends Controller
             ]);
             $week_number = $data["week_number"];
             $department_id = $data["department_id"];
-            $schedule_data = $data["schedule_data"];
-
+            $schedule_data = $data["schedule_data"]["schedule_data"];
+            //dd($schedule_data);
         }
         // Validate input data if passed directly (when $request is null)
         if (is_null($department_id) || is_null($week_number) || is_null($schedule_data)) {
@@ -76,11 +77,12 @@ class WeeklyScheduleController extends Controller
 
         if ($weeklySchedule) {
             // Update the existing schedule
-            $weeklySchedule->update(['schedule_data' => $data['schedule_data']]);
+            $weeklySchedule->update(['schedule_data' => $data["schedule_data"]["schedule_data"]]);
             return response()->json(['status' => 'Success',
                 'message' => 'Horario actualizado con éxito.',
                 'weekly_schedule' => $weeklySchedule, ]);// Return updated schedule_data
         } else {
+            //dd($schedule_data);
             $data = ['department_id' => $department_id,
                 'week_number' => $week_number,
                 'schedule_data' => $schedule_data];

@@ -1,7 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head } from '@inertiajs/vue3';
-import { ref, reactive, onMounted, onBeforeMount, toRaw,} from 'vue';
+import { ref, reactive, onMounted, onBeforeMount, toRaw, watch } from 'vue';
 import axios from 'axios';
 import moment from 'moment';
 import { DateTime } from 'luxon';
@@ -12,7 +12,7 @@ const props = defineProps({
 });
 
 const weekly_schedules_for_month = reactive([]);
-const weekly_schedule = reactive({});
+const weekly_schedule = reactive([]);
 const today = new Date();
 const consolidated_schedules = reactive([]);
 const week_date_range_dates = reactive([]);
@@ -56,37 +56,50 @@ const toast_options = {
 const getWeeklySchedule = async (week_numb_param, dep_id_param) => {
     console.log("week_numb: " + week_numb_param)
     await axios.post('/schedule/weekly/' + week_numb_param + '/' + dep_id_param).then((response) => {
-        Object.keys(weekly_schedule).forEach(key => {
+/*         Object.keys(weekly_schedule).forEach(key => {
             delete weekly_schedule[key];
         });
-        Object.assign(weekly_schedule, response.data);
-        console.log(response.data);
+        Object.assign(weekly_schedule, response.data.weekly_schedule); */
+        weekly_schedule.length = 0;
+        weekly_schedule.push(response.data.weekly_schedule);
+        console.log(weekly_schedule);
         if (response.data.status){
             toast.success(`${response.data.message}`, toast_options);
         }
     });
 };
 
-const getWeeklySchedulesForMonth = async (dep_id_param) => {
-    console.log(week_numbers_by_month);
-    Object.keys(weekly_schedules_for_month).forEach(key => {
-            delete weekly_schedules_for_month[key];
-    });
-    for (let week_numb_param of week_numbers_by_month) {
-        console.log("ENTRARARARARARAR")
-        try {
-            let response = await axios.post('/schedule/weekly/' + week_numb_param + '/' + dep_id_param);
-            Object.assign(weekly_schedules_for_month, response.data);
-
-            if (response.data.status) {
-                toast.success(`${response.data.message}`, toast_options);
+const getWeeklySchedulesForMonth = async (department_id, year, month) => {
+    weekly_schedules_for_month.length = 0;
+    let weeks_generated = reactive([]);
+    let weeks_existent = reactive([]);
+    try {
+        let url = '/api/weekly_schedules_for_month/' + department_id + '/' + year + '/' + month;
+        let response = await axios.get(url);
+        if (response.data.length > 0) {
+            response.data.forEach((data) =>{
+                if (data.original) {
+                    weekly_schedules_for_month.push(data.original.weekly_schedule);
+                    weeks_generated.push(data.original.weekly_schedule.week_number);
+                } else {
+                    weekly_schedules_for_month.push(data.weekly_schedule);
+                    weeks_existent.push(data.weekly_schedule.week_number);
+                }
+            })
+            if (weeks_generated.length > 0) {
+                toast.success(`Se han generado horarios para las semanas: ${weeks_generated}.`, toast_options);
             }
-        } catch (error) {
-            toast.error(`${response.data.message}`, toast_options);
+            if (weeks_existent.length > 0) {
+                toast.warning(`Ya existen horarios para las semanas: ${weeks_existent}.`, toast_options);
+            }
         }
-    
+        console.log(weekly_schedules_for_month);
+    } catch (error) {
+        toast.error(`Ha habido un error.`, toast_options);
+        console.log(error);
     }
-    console.log(weekly_schedules_for_month);
+    
+
 }
 
 /* const getWeekNumber = (date) => {
@@ -118,13 +131,19 @@ const formatDate = (date) => {
     return `${day}-${month}-${year}`;
 };
 
+function formatDateToDDMMYYYY(dateString) {
+    if (!dateString) return null;
+
+    const [year, month, day] = dateString.split("-");
+    return `${day}-${month}-${year}`;
+}
+
 const fetchWeekDates = async (year, week_number) => { //Dates for the table thead
     loading.value = true;
     await axios.get('/api/week_dates/' + year + '/' + week_number)
         .then((response) => {
             week_date_range_dates.length = 0; // Clear the existing data (optional)
             week_date_range_dates.push(...response.data); // Add new data to the reactive array
-            console.log(week_date_range_dates);
             loading.value = false;
         })
 }
@@ -164,7 +183,6 @@ const getWeeksForMonth = (year, month) => {
 
 const checkTodayMatch = (date) => {
     let today = moment().format('DD-MM-YYYY');
-    console.log("Checking date:", date, "today:", today);
     return today === date;
 }
 
@@ -259,10 +277,23 @@ const closeEditing = (row_index) => {
 
 const saveChanges = async (week_number, department_id, schedule_data) => {
     loading.value = true;
-    await axios.post('/schedule/saveweeklyschedule', {week_number: week_number, department_id: department_id, schedule_data: schedule_data.weekly_schedule.schedule_data}, 
+    console.log(schedule_data);
+    let data;
+    if (schedule_data && schedule_data.weekly_schedule && schedule_data.weekly_schedule.schedule_data) {
+        data = schedule_data.weekly_schedule.schedule_data; // Access schedule_data if available
+    } else {
+        data = schedule_data; // Fall back to the original schedule_data
+    }
+    let toRaw_data = toRaw(data);
+    await axios.post('/schedule/saveweeklyschedule', {
+        week_number: week_number, 
+        department_id: department_id, 
+        schedule_data: toRaw_data
+    }, 
         {headers: {
             'Content-Type': 'application/json',
-    }},)
+        }
+    },)
         .then((response) => {
             Object.keys(weekly_schedule).forEach(key => {
                 delete weekly_schedule[key];
@@ -308,7 +339,7 @@ const consolidateSchedules = () => {
 }
 
 const moveUser = (index, direction) => {
-      const users = weekly_schedule.weekly_schedule.schedule_data.users;
+      const users = weekly_schedule.schedule_data.users;
 
       if (direction === "up" && index >= 1) {
         // Swap the current user with the one above
@@ -321,6 +352,11 @@ const moveUser = (index, direction) => {
       }
 }
 
+
+const getFirstElement = (arr) => { return arr[0] };
+
+const getLastElement = (arr) => { return arr[arr.length - 1] };
+
 onBeforeMount(async () => {
     getWeekDateRange(today);
 
@@ -330,6 +366,7 @@ onBeforeMount(async () => {
 onMounted(async () => {
 
 });
+
 
 </script>
 
@@ -370,7 +407,7 @@ onMounted(async () => {
                                 <select
                                     class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                                     :disabled="!selected_department_id" v-model="selected_month"
-                                    @change="selected_month_label(); getWeeksForMonth(getSelectedYear(selected_month), getSelectedMonth(selected_month)); fetchWeekNumbersByMonth(getSelectedYear(selected_month), selected_month_index); getWeeklySchedulesForMonth(selected_department_id)">
+                                    @change="selected_month_label(); getWeeksForMonth(getSelectedYear(selected_month), getSelectedMonth(selected_month)), getWeeklySchedulesForMonth(selected_department_id, getSelectedYear(selected_month), selected_month_index);"> <!-- fetchWeekNumbersByMonth(getSelectedYear(selected_month), selected_month_index); getWeeklySchedulesForMonth(selected_department_id) -->
                                     <option value="" disabled selected>Selecciona un mes</option>
                                     <!-- Placeholder option -->
                                     <option v-for="month in months" :key="month.value" :value="month.value">
@@ -441,11 +478,114 @@ onMounted(async () => {
                         </div>
                     </div>
 
-                    <!-- START TABLE -->
+                    <!-- START MULTI TABLES -->
+                    <div v-if="selected_month && !selected_week" class="pb-14 grid items-center justify-center text-gray-900 dark:text-gray-100">
+                        <div v-for="(weekly_schedule, weekly_schedule_index) in weekly_schedules_for_month" :key="weekly_schedule_index" class="relative overflow-x-auto my-5">
+                            <h4 v-if="Object.keys(weekly_schedule).length > 0" class="header m-2"> Semana: <span class="bold text-violet-400"> {{ weekly_schedule.week_number }} </span> | <span class="bold text-green-200"> {{ getFirstElement(weekly_schedule.schedule_data.schedules[0]).date }} </span> a <span class="bold text-green-200"> {{ getLastElement(weekly_schedule.schedule_data.schedules[0]).date }} </span> | 
+                                <button @click="getWeeklySchedule(weekly_schedule.week_number, selected_department_id), closeEditing()" class="text-yellow-300"><i class="text-md text-yellow-300 fa-solid fa-rotate"></i> Recargar tabla</button> |
+                                <button @click="saveChanges(weekly_schedule.week_number, selected_department_id, weekly_schedule), closeEditing()" class="text-green-400"><i class="text- text-green-400 fa-solid fa-floppy-disk"></i> Grabar imagen</button>
+                            </h4>
+                            <table v-if="Object.keys(weekly_schedule).length > 0" class="w-full text-sm text-left rtl:text-right border dark:border-gray-600 text-gray-500 dark:text-gray-400">
+                                <thead
+                                    class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3">Turno</th>
+                                        <th scope="col" class="px-6 py-3"
+                                            v-for="(day_of_week, index) in formatted_data_indexes" :key="index"> {{ day_of_week }}
+                                        </th>
+                                        <th class="">Editar</th>
+                                        <!-- <th scope="col" class="px-6 py-3"></th> -->
+                                    </tr>
+                                    <tr ><!-- v-if="(weekly_schedule.schedule_data.schedules.length > 0)" -->
+                                        <th scope="col" class="px-6 py-1"></th>
+                                        <th scope="col" class="px-6 py-1" v-for="(date, date_index) in weekly_schedule.schedule_data.schedules[0]" :key="date_index">
+                                            <span class="text-green-100" :class="[checkTodayMatch(formatDateToDDMMYYYY(date.date)) ? 'today_th' : '', ]">{{ formatDateToDDMMYYYY(date.date) }}</span>
+                                        </th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Loop through each user data array -->
+                                    <tr v-for="(user, user_index) in weekly_schedule.schedule_data.users" :key="user_index" class=" bg-white border-b dark:bg-gray-800 dark:border-gray-500" :class="[(user[user_index].id == 8 || user[user_index].id == 9) ? 'reduced_contract' : '']"><!-- :class="[(user.user.id == 8 || user.user.id == 9) ? 'reduced_contract' : '']" -->
+                                            <td scope="row"
+                                                class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l bg-gray-600 dark:border-gray-500 dark:text-white"
+                                                :class="[(user[user_index].id == 8 || user[user_index].id == 9) ? 'reduced_contract' : '',]"
+                                                >
+                                                <template v-if="is_editing && edit_state.row === user_index">
+                                                    <i class="fa-solid fa-user"></i> {{ user[user_index].name }}
+                                                        <button
+                                                            @click="moveUser(user_index, 'up')" 
+                                                            :disabled="user_index === 0" 
+                                                            class="btn btn-sm btn-primary border mx-1 border-green-200 transition ease-in-out duration-300 hover:text-green-400"
+                                                            >
+                                                            <i class="transition ease-in-out duration-300 text-xm text-green-500 hover:text-green-600 m-2 fa-solid fa-arrow-up"></i>
+                                                        </button>
+                                                        <button
+                                                            @click="moveUser(user_index, 'down')" 
+                                                            :disabled="user_index === weekly_schedule.schedule_data.users.length - 1" 
+                                                            class="btn btn-sm btn-secondary border mx-1 border-red-200 transition ease-in-out duration-300 hover:text-red-400"
+                                                            >
+                                                            <i class="transition ease-in-out duration-300 text-xm text-red-500 hover:text-red-400 m-2 fa-solid fa-arrow-down"></i>
+                                                        </button>
+                                                </template>
+                                                <template v-else>
+                                                    <i class="fa-solid fa-user"></i> {{ user[user_index].name }}
+                                                </template>
+                                            </td>
+                                            <td v-for="(schedule, schedule_index) in weekly_schedule.schedule_data.schedules[user_index]" :key="schedule_index" scope="row"
+                                                class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l dark:border-gray-500 dark:text-white"
+                                                :class="[(user[schedule_index].is_night_shift) ? 'is_night_shift' : '',
+                                                        (schedule.start_time === '00:00' && schedule.end_time === '00:00' && (user[user_index].id == 8 || user[user_index].id == 9)) ? 'free_day reduced_contract' : 
+                                                        (schedule.start_time === '00:00' && schedule.end_time === '00:00' && (schedule.is_weekend_day)) ? 'free_day' : schedule.is_weekend_day ? 'free_day' : '', 
+                                                        (user[schedule_index].is_holiday) ? 'is_confirmed_holiday' : '', 
+                                                        (user[schedule_index].is_not_available) ? 'is_not_available' : '', ]">
+                                                <template v-if="is_editing && edit_state.row === user_index">
+                                                    <select v-model="schedule.start_time" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full p-1.5 my-1 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                                        <option selected disabled default :value="schedule.start_time">{{ schedule.start_time }}</option>
+                                                        <option v-for="(value, key) in schedule_hour_selector" :key="key" :value="key">{{ value }}</option>
+                                                    </select>
+                                                    <select v-model="schedule.end_time" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full p-1.5 my-1 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                                        <option selected :value="schedule.end_time">{{ schedule.end_time }}</option>
+                                                        <option v-for="(value, key) in schedule_hour_selector" :key="key" :value="key">{{ value }}</option>
+                                                    </select>
+                                                    <div class="flex justify-center">
+                                                        <input type="checkbox" v-model="schedule.is_weekend_day" :checked="schedule.is_weekend_day === true" class="mr-1 w-3.5 h-3.5 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-green-500 dark:border-gray-600"/>
+                                                        <input type="checkbox" v-model="user[schedule_index].is_holiday" @change="updateHolidayCheckbox(user[schedule_index], $event.target.checked)" :checked="user[schedule_index].is_holiday === true" class="mr-1 w-3.5 h-3.5 text-yellow-500 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-yellow-500 dark:border-gray-600"/>
+                                                        <input type="checkbox" v-model="user[schedule_index].is_night_shift" :checked="user[schedule_index].is_night_shift === true" class="mr-1 w-3.5 h-3.5 text-red-400 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-red-400 dark:border-gray-600"/>
+                                                        <input type="checkbox" v-model="user[schedule_index].is_not_available" :checked="user[schedule_index].is_not_available === true" class="mr-1 w-3.5 h-3.5 text-yellow-300 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-yellow-200 dark:border-gray-600"/>
+                                                    </div>
+                                                </template>
+                                                <template v-else>
+                                                    <!-- {{ day_index }}: {{ day }} -->
+                                                    {{ user[schedule_index].is_not_available ? 'BAJA' :
+                                                    schedule.start_time === '00:00' && schedule.end_time === '00:00' && schedule.is_weekend_day ? 'LIBRE' : 
+                                                    schedule.is_weekend_day ? 'LIBRE' :
+                                                    user[schedule_index].is_holiday && user[schedule_index].holiday_state ===2 ? 'VACACIONES' :
+                                                    schedule.start_time + ' - ' + schedule.end_time }}
+                                                </template>
+                                            </td>
+                                            <td class="w-14 pl-2 flex-end">
+                                                <template v-if="is_editing && edit_state.row === user_index">
+                                                    <button @click="closeEditing(user_index)"><i class="p-1 m-1 text-2xl text-red-400 fa-solid fa-xmark"></i></button>
+                                                </template>
+                                                <template v-else>
+                                                    <button @click="startEditing(user_index)"><i class="p-1 m-1 text-2xl text-yellow-200 fa-regular fa-pen-to-square"></i></button>
+                                                </template>
+                                            </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <p v-else>No hay datos sobre el departamento para este mes y semana.</p>
+                        </div>
+                    </div>
 
-                    <div v-if="!loading" class="pb-14 flex items-center justify-center text-gray-900 dark:text-gray-100">
+
+
+                    <!-- START SINGLE TABLE -->
+
+                    <div v-if="selected_week" class="pb-14 flex items-center justify-center text-gray-900 dark:text-gray-100">
                         <div class="relative overflow-x-auto mt-5">
-                            <h4 v-if="Object.keys(weekly_schedule).length > 0 && selected_week?.weekNumber" class="header m-2"> Semana: <span class="bold text-violet-400"> {{ selected_week?.weekNumber }} </span> | <span class="bold text-green-200"> {{ selected_week?.startDate }} </span> a <span class="bold text-green-200"> {{ selected_week?.endDate }} </span> | 
+                            <h4 v-if="Object.keys(weekly_schedule).length > 0 && selected_week.weekNumber" class="header m-2"> Semana: <span class="bold text-violet-400"> {{ selected_week?.weekNumber }} </span> | <span class="bold text-green-200"> {{ selected_week?.startDate }} </span> a <span class="bold text-green-200"> {{ selected_week?.endDate }} </span> | 
                                 <button @click="getWeeklySchedule(selected_week.weekNumber, selected_department_id), closeEditing()" class="text-yellow-300"><i class="text-md text-yellow-300 fa-solid fa-rotate"></i> Recargar tabla</button> |
                                 <button @click="saveChanges(selected_week.weekNumber, selected_department_id, weekly_schedule), closeEditing()" class="text-green-400"><i class="text- text-green-400 fa-solid fa-floppy-disk"></i> Grabar imagen</button>
                             </h4>
@@ -470,7 +610,7 @@ onMounted(async () => {
                                 </thead>
                                 <tbody>
                                     <!-- Loop through each user data array -->
-                                    <tr v-for="(user, user_index) in weekly_schedule.weekly_schedule.schedule_data.users" :key="user_index" class=" bg-white border-b dark:bg-gray-800 dark:border-gray-500" :class="[(user[user_index].id == 8 || user[user_index].id == 9) ? 'reduced_contract' : '']"><!-- :class="[(user.user.id == 8 || user.user.id == 9) ? 'reduced_contract' : '']" -->
+                                    <tr v-for="(user, user_index) in weekly_schedule[0].schedule_data.users" :key="user_index" class=" bg-white border-b dark:bg-gray-800 dark:border-gray-500" :class="[(user[user_index].id == 8 || user[user_index].id == 9) ? 'reduced_contract' : '']"><!-- :class="[(user.user.id == 8 || user.user.id == 9) ? 'reduced_contract' : '']" -->
                                             <td scope="row"
                                                 class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l bg-gray-600 dark:border-gray-500 dark:text-white"
                                                 :class="[(user[user_index].id == 8 || user[user_index].id == 9) ? 'reduced_contract' : '',]"
@@ -486,7 +626,7 @@ onMounted(async () => {
                                                         </button>
                                                         <button
                                                             @click="moveUser(user_index, 'down')" 
-                                                            :disabled="user_index === weekly_schedule.weekly_schedule.schedule_data.users.length - 1" 
+                                                            :disabled="user_index === weekly_schedule.schedule_data.users.length - 1" 
                                                             class="btn btn-sm btn-secondary border mx-1 border-red-200 transition ease-in-out duration-300 hover:text-red-400"
                                                             >
                                                             <i class="transition ease-in-out duration-300 text-xm text-red-500 hover:text-red-400 m-2 fa-solid fa-arrow-down"></i>
@@ -496,7 +636,7 @@ onMounted(async () => {
                                                     <i class="fa-solid fa-user"></i> {{ user[user_index].name }}
                                                 </template>
                                             </td>
-                                            <td v-for="(schedule, schedule_index) in weekly_schedule.weekly_schedule.schedule_data.schedules[user_index]" :key="schedule_index" scope="row"
+                                            <td v-for="(schedule, schedule_index) in weekly_schedule[0].schedule_data.schedules[user_index]" :key="schedule_index" scope="row"
                                                 class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l dark:border-gray-500 dark:text-white"
                                                 :class="[(user[schedule_index].is_night_shift) ? 'is_night_shift' : '',
                                                         (schedule.start_time === '00:00' && schedule.end_time === '00:00' && (user[user_index].id == 8 || user[user_index].id == 9)) ? 'free_day reduced_contract' : 

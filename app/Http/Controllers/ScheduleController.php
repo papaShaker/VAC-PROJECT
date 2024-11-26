@@ -433,8 +433,8 @@ class ScheduleController extends Controller
 
     private function formattedTime($time)
     { // Split the time string by `:` and take the first two components (hours and minutes)
-    list($hours, $minutes) = explode(':', $time);
-    return $hours . ':' . $minutes;
+        list($hours, $minutes) = explode(':', $time);
+        return $hours . ':' . $minutes;
     }
 
     private function generateMonthData($today, $non_working_days, $user_holidays_collection)
@@ -564,6 +564,17 @@ class ScheduleController extends Controller
             return $response;
         }
     }
+
+    public function getWeeklySchedulesForMonth ($department_id, $year, $month) {
+        $weekly_schedules_for_month = [];
+        $weeks = $this->getWeekNumbersForMonth($year, $month);
+        foreach ($weeks as $week_index => $week) {
+            $weekly_schedule = $this->weeklySchedule($week, $department_id); /* HERE MUST GO ROTATION INDEX/WEEK */
+            $weekly_schedules_for_month[] = $weekly_schedule;
+        }
+        return $weekly_schedules_for_month;
+    }
+
 }
 
 
