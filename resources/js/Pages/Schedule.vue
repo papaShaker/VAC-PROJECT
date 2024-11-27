@@ -76,6 +76,7 @@ const getWeeklySchedulesForMonth = async (department_id, year, month) => {
         let url = '/api/weekly_schedules_for_month/' + department_id + '/' + year + '/' + month;
         let response = await axios.get(url);
         if (response.data.length > 0) {
+            console.log(response.data);
             response.data.forEach((data) =>{
                 if (data.original) {
                     weekly_schedules_for_month.push(data.original.weekly_schedule);
@@ -289,7 +290,8 @@ const saveChanges = async (week_number, department_id, schedule_data) => {
     await axios.post('/schedule/saveweeklyschedule', {
         week_number: week_number, 
         department_id: department_id, 
-        schedule_data: toRaw_data
+        schedule_data: toRaw_data,
+        rotation: data.rotation ? data.rotation : 0
     }, 
         {headers: {
             'Content-Type': 'application/json',

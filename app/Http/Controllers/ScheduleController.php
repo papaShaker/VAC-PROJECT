@@ -224,8 +224,9 @@ class ScheduleController extends Controller
     }
 
 
-    public function getDailyAvailableUsers($week_number, $department_id)
+    public function getDailyAvailableUsers($week_number, $department_id, $rotation_index = null)
     {
+
         $year = now()->year;
         $start_of_week = Carbon::now()->setISODate($year, $week_number)->startOfWeek();
         $end_of_week = $start_of_week->copy()->endOfWeek();
@@ -285,7 +286,7 @@ class ScheduleController extends Controller
                 // Exclude the nonworkingdayzone field by converting each user object to an array
                 return collect($user)->except(['nonworkingdayzone', 'job_ranges', 'holidays', 'holiday_zone'])->all();
             });
-            $counter = $available_users->count();
+
             $available_users_by_day[$date_string] = [
                 'users' => $available_users,
                 'count' => $available_users->count(),
@@ -294,8 +295,7 @@ class ScheduleController extends Controller
 
             $day_of_week++;
         }
-        
-        return $this->getWeeklySchedule($available_users_by_day, $users, $department_id);;
+        return $this->getWeeklySchedule($available_users_by_day, $users, $department_id, $rotation_index);
     }
 
     //Helper method to see if a user has a free day being part of a NonWorkingDayZone.
@@ -320,29 +320,69 @@ class ScheduleController extends Controller
         return false; // No non-working day found in this hierarchy
     }
     
-    private function getWeeklySchedule($available_users_by_day, $users, $department_id, $passed_schedules = null) {
+    private function getWeeklySchedule($available_users_by_day, $users, $department_id, $rotation_index = null, $passed_schedules = null) {
+
         $set_week = [];
         $programmed_users = [];
         $programmed_schedules = [];
         $users_schedule_index_counter = 0;
         $availability = null;
         $users_array = $users->toArray();
-        
-        foreach($users_array as $index => $element) { //Sets the object so that these 2 users appear at first index (0) in the final weekly schedule object.
-            if ($element['id'] == 9) {
-                $element_to_move = $element;
-                unset($users_array[$index]);
-                array_unshift($users_array, $element_to_move);
-                break;
-            } 
-            if ($element['id'] == 8) {
-                $element_to_move = $element;
-                unset($users_array[$index]);
-                array_unshift($users_array, $element_to_move);
-                break;
-            } 
+        $available_users_limit_index = $users->count() - 1;
+        $rotation_index = ($rotation_index && $rotation_index < $available_users_limit_index) ? $rotation_index : 0;
+        $inverse_rotation = $available_users_limit_index * 2;
+        $rotation_counter = $available_users_limit_index - $rotation_index;
+
+        if ($rotation_index === 0 || $rotation_index > $available_users_limit_index){
+            foreach($users_array as $index => $element) { //Sets the object so that these 2 users appear at first index (0) in the final weekly schedule object.
+                if ($element['id'] == 9) {
+                    $element_to_move = $element;
+                    unset($users_array[$index]);
+                    array_unshift($users_array, $element_to_move);
+                    break;
+                } 
+                if ($element['id'] == 8) { // FOR INFORMÁTICA
+                    $element_to_move = $element;
+                    unset($users_array[$index]);
+                    array_unshift($users_array, $element_to_move);
+                    break;
+                } 
+            }
+            //ASJDLASDLKJASLSDJLASJD
         }
+        dd($available_users_limit_index);
+        if ($rotation_index !== 0 && $rotation_index <= $available_users_limit_index ) {
+            dd("ENTRA");
+            for ($i = $rotation_counter; $i <= $available_users_limit_index; $i++) {
+                if($inverse_rotation >= $available_users_limit_index) {
+                    $element_to_move = $users_array[$available_users_limit_index - $inverse_rotation];
+                    unset($users_array[$available_users_limit_index - $inverse_rotation]);
+                    array_unshift($users_array, $element_to_move);
+                    foreach($users_array as $index => $element) { //Sets the object so that these 2 users appear at first index (0) in the final weekly schedule object.
+                        if ($element['id'] == 9) {
+                            $element_to_move = $element;
+                            unset($users_array[$index]);
+                            array_unshift($users_array, $element_to_move);
+                            break;
+                        } 
         
+                        if ($element['id'] == 8) {
+                            $element_to_move = $element;
+                            unset($users_array[$index]);
+                            array_unshift($users_array, $element_to_move);
+                            break;
+                        } 
+                    }
+                    $inverse_rotation--;
+                    $i++;
+                } else if ($inverse_rotation < $available_users_limit_index){
+                    $inverse_rotation = $available_users_limit_index - $rotation_index;
+                    $inverse_rotation--;
+                    $i++;
+                }
+            }
+        }
+
         $users = collect($users_array);
         foreach($users as $user_index => $user_element) {
             $user_week = []; //Has a property for each column of the table it will be represented in
@@ -419,7 +459,9 @@ class ScheduleController extends Controller
         }
         $set_week['users'] = $programmed_users;
         $set_week['schedules'] = ($passed_schedules === null) ? $programmed_schedules : $passed_schedules;
-        return $set_week;
+        $rotation_index++;
+        dd($rotation_index);
+        return ['set_week' => $set_week, 'rotation_index' => $rotation_index];
     }
 
 
@@ -548,18 +590,38 @@ class ScheduleController extends Controller
         return $week_numbers;
     }
 
-    public function weeklySchedule($week_number = null, $department_id = null, Request $request = null){
-            // Check if a record with the same department_id and week_number exists
-            $weeklySchedule = WeeklySchedule::where('department_id', $department_id)
-                ->where('week_number', $week_number)
-                ->first();
-        if ($weeklySchedule){
+    public function weeklySchedule($week_number = null, $department_id = null){
+
+        $rotation_index = 0;
+        $previous_week_number = null;
+
+        if ($week_number && $week_number === 1) {
+            $previous_week_number = 52;
+        } else {
+            $previous_week_number = --$week_number;
+        }
+
+        // Check if a record with the same department_id and week_number exists
+        $weekly_schedule = WeeklySchedule::where('department_id', $department_id)
+            ->where('week_number', $week_number)
+            ->first();
+
+        $previous_week = WeeklySchedule::where('department_id', $department_id)
+            ->where('week_number', $previous_week_number)
+            ->first();
+
+        if($previous_week && $previous_week->rotation !== 0) {
+            $rotation_index = $previous_week->rotation;
+        }
+        
+        if ($weekly_schedule){
             $data = [
-                'weekly_schedule' => $weeklySchedule,
+                'weekly_schedule' => $weekly_schedule,
             ];
             return $data;
         } else {
-            $schedule_data = $this->getDailyAvailableUsers($week_number, $department_id);
+            
+            $schedule_data = $this->getDailyAvailableUsers($week_number, $department_id, $rotation_index); // ROTATION INDEX MUST BE PASSED HERE
             $response = WeeklyScheduleController::saveWeeklySchedule($week_number, $department_id, $schedule_data);
             return $response;
         }
@@ -569,7 +631,7 @@ class ScheduleController extends Controller
         $weekly_schedules_for_month = [];
         $weeks = $this->getWeekNumbersForMonth($year, $month);
         foreach ($weeks as $week_index => $week) {
-            $weekly_schedule = $this->weeklySchedule($week, $department_id); /* HERE MUST GO ROTATION INDEX/WEEK */
+            $weekly_schedule = $this->weeklySchedule($week, $department_id); /* ROTATION INDEX/WEEK MUST BE INITIALIZED IN weeklySchedule FUNCTION */
             $weekly_schedules_for_month[] = $weekly_schedule;
         }
         return $weekly_schedules_for_month;

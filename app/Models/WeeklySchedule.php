@@ -14,7 +14,7 @@ class WeeklySchedule extends Model
 
     use SoftDeletes;
 
-    protected $fillable = ['department_id', 'week_number', 'schedule_data'];
+    protected $fillable = ['department_id', 'week_number', 'schedule_data', 'rotation'];
 
     protected $casts = [
         'schedule_data' => 'array', // This will automatically cast the JSON field to an array

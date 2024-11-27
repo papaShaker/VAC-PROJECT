@@ -50,22 +50,24 @@ class WeeklyScheduleController extends Controller
     { //dd("AQUÍ");
         
         $request = request(); // Retrieve the current request
-        //dd($request);
+
         // If no parameters are passed, use the request data
-        if ($request->has(['department_id', 'week_number', 'schedule_data'])) {
+        if ($request->has(['department_id', 'week_number', 'schedule_data', 'rotation'])) {
             //dd($request);
             $data = $request->validate([
                 'department_id' => 'required|integer',
                 'week_number' => 'required|integer',
                 'schedule_data' => 'required|array',
+                'rotation' => 'required|integer',
             ]);
             $week_number = $data["week_number"];
             $department_id = $data["department_id"];
             $schedule_data = $data["schedule_data"]["schedule_data"];
-            //dd($schedule_data);
+            $rotation = $data["schedule_data"]["rotation"];
         }
         // Validate input data if passed directly (when $request is null)
-        if (is_null($department_id) || is_null($week_number) || is_null($schedule_data)) {
+        if (is_null($department_id) || is_null($week_number) || is_null($schedule_data)) { // + is_null(rotation)
+
             return response()->json(['status' => 'Error', 'message' => 'Missing parameters.'], 400);
         }
 
@@ -78,16 +80,20 @@ class WeeklyScheduleController extends Controller
         if ($weeklySchedule) {
             // Update the existing schedule
             $weeklySchedule->update(['schedule_data' => $data["schedule_data"]["schedule_data"]]);
+
             return response()->json(['status' => 'Success',
                 'message' => 'Horario actualizado con éxito.',
                 'weekly_schedule' => $weeklySchedule, ]);// Return updated schedule_data
         } else {
-            //dd($schedule_data);
+
             $data = ['department_id' => $department_id,
                 'week_number' => $week_number,
-                'schedule_data' => $schedule_data];
+                'schedule_data' => $schedule_data["set_week"],
+                'rotation' => $schedule_data["rotation_index"]]; //(check if schedule for prev week exists, if so, get the rotation and check )
             // Insert a new schedule
+
             $newWeeklySchedule = WeeklySchedule::create($data);
+            //dd($newWeeklySchedule); -> ON FIRST TRY ALL MONTHS
             return response()->json(['status' => 'Success', 
                 'message' => 'Se ha generado un nuevo horario.', 
                 'weekly_schedule' => $newWeeklySchedule, ]);// Return updated schedule_data]);
