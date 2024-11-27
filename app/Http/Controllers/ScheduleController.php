@@ -330,51 +330,28 @@ class ScheduleController extends Controller
         $users_array = $users->toArray();
         $available_users_limit_index = $users->count() - 1;
 
-        if ($rotation_index === 0 || $rotation_index > $available_users_limit_index){
-            foreach($users_array as $index => $element) { //Sets the object so that these 2 users appear at first index (0) in the final weekly schedule object.
-                if ($element['id'] == 9) {
-                    $element_to_move = $element;
-                    unset($users_array[$index]);
-                    array_unshift($users_array, $element_to_move);
-                    break;
-                } 
-                if ($element['id'] == 8) { // FOR INFORMÁTICA
-                    $element_to_move = $element;
-                    unset($users_array[$index]);
-                    array_unshift($users_array, $element_to_move);
-                    break;
-                } 
-            }
-
+        if($rotation_index >= $available_users_limit_index){
+            $rotation_index = 0;
         }
-        if ($rotation_index !== 0 && $rotation_index <= $available_users_limit_index ) {
-            $rotation_max = $rotation_index + $available_users_limit_index;            
-            for ($i = 0; $i <= $available_users_limit_index; $i++) {
-                if($i <= $available_users_limit_index) {
-                    $element_to_move = $users_array[$i];
-                    unset($users_array[$i]);
-                    array_unshift($users_array, $element_to_move);
-                    foreach($users_array as $index => $element) { //Sets the object so that these 2 users appear at first index (0) in the final weekly schedule object.
-                        if ($element['id'] == 9) {
-                            $element_to_move = $element;
-                            unset($users_array[$index]);
-                            array_unshift($users_array, $element_to_move);
-                            break;
-                        } 
-        
-                        if ($element['id'] == 8) {
-                            $element_to_move = $element;
-                            unset($users_array[$index]);
-                            array_unshift($users_array, $element_to_move);
-                            break;
-                        } 
-                    }
-                    $i++;
-                } else if ($i > $available_users_limit_index){
-                    $rotation_index = 0;
-                    $i++;
-                }
+
+        foreach ($users_array as $index => $element) {
+            if ($element['id'] == 9 || $element['id'] == 8) {
+                $element_to_move = $element;
+                unset($users_array[$index]);
+                array_unshift($users_array, $element_to_move);
+                break;
             }
+        }
+
+        for ($i = 0; $i < $rotation_index; $i++) {
+            $element_to_move = array_pop($users_array); // Take the last element
+            array_splice($users_array, 1, 0, [$element_to_move]); // Move it to the 1st index
+        }
+
+        // After weekly schedule mapping, increase rotation_index by 1
+        $next_rotation_index = $rotation_index + 1;
+        if ($next_rotation_index > $available_users_limit_index) {
+            $next_rotation_index = 0; // Reset to 0 if it exceeds the user limit
         }
 
         $users = collect($users_array);
@@ -453,9 +430,7 @@ class ScheduleController extends Controller
         }
         $set_week['users'] = $programmed_users;
         $set_week['schedules'] = ($passed_schedules === null) ? $programmed_schedules : $passed_schedules;
-        $rotation_index++;
-        dump($rotation_index);
-        return ['set_week' => $set_week, 'rotation_index' => $rotation_index];
+        return ['set_week' => $set_week, 'rotation_index' => $next_rotation_index];
     }
 
 
