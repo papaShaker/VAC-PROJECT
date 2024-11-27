@@ -16,7 +16,7 @@ const weekly_schedule = reactive([]);
 const today = new Date();
 const consolidated_schedules = reactive([]);
 const week_date_range_dates = reactive([]);
-const week_numbers_by_month = reactive([]); /* STORES WEEK NUMBERS FOR SELECTED MONTH */
+const week_numbers_by_month = reactive([]);
 const week_dates_by_month = reactive([]);
 const selected_department_id = ref(null);
 const selected_month = ref(null);
@@ -40,7 +40,6 @@ const is_editing = ref(false);
 const edit_state = reactive({
     table: null,
     row: null,
-    //column: null,
 })
 
 const toast_options = {
@@ -55,19 +54,18 @@ const toast_options = {
 }
 
 const getWeeklySchedule = async (week_numb_param, dep_id_param) => {
-    console.log("week_numb: " + week_numb_param)
-    await axios.post('/schedule/weekly/' + week_numb_param + '/' + dep_id_param).then((response) => {
-/*         Object.keys(weekly_schedule).forEach(key => {
-            delete weekly_schedule[key];
+    if(week_numb_param !== undefined){
+        console.log("ENTRAAAAAAA")
+        console.log(selected_week)
+        await axios.post('/schedule/weekly/' + week_numb_param + '/' + dep_id_param).then((response) => {
+            weekly_schedule.length = 0;
+            weekly_schedule.push(response.data.weekly_schedule);
+            console.log(weekly_schedule);
+            if (response.data.status){
+                toast.success(`${response.data.message}`, toast_options);
+            }
         });
-        Object.assign(weekly_schedule, response.data.weekly_schedule); */
-        weekly_schedule.length = 0;
-        weekly_schedule.push(response.data.weekly_schedule);
-        console.log(weekly_schedule);
-        if (response.data.status){
-            toast.success(`${response.data.message}`, toast_options);
-        }
-    });
+    }
 };
 
 const getWeeklySchedulesForMonth = async (department_id, year, month) => {
@@ -91,7 +89,7 @@ const getWeeklySchedulesForMonth = async (department_id, year, month) => {
                 toast.success(`Se han generado horarios para las semanas: ${weeks_generated}.`, toast_options);
             }
             if (weeks_existent.length > 0) {
-                toast.warning(`Ya existen horarios para las semanas: ${weeks_existent}.`, toast_options);
+                toast.success(`Horarios para las semanas: ${weeks_existent}.`, toast_options);
             }
         }
         console.log(weekly_schedules_for_month);
@@ -124,8 +122,8 @@ function getWeekDateRange(date) {
       return { start_date, end_date };
 }
 
-// Format the dates (e.g., '24-11-22')
-const formatDate = (date) => {
+
+const formatDate = (date) => { // Format the dates (e.g., '24-11-22')
     const year = date.getFullYear().toString().slice(-2); // Get last 2 digits of the year
     const month = String(date.getMonth() + 1).padStart(2, '0'); // Add leading zero if needed
     const day = String(date.getDate()).padStart(2, '0'); // Add leading zero if needed
@@ -179,7 +177,7 @@ const getWeeksForMonth = (year, month) => {
         startDate: currentStartDate.toFormat('dd-MM-yyyy'),
         endDate: currentEndDate.toFormat('dd-MM-yyyy'),
     });
-    console.log("weekdate year: " + week_dates_by_month.year);
+    console.log(week_dates_by_month);
 };
 
 const checkTodayMatch = (date) => {
@@ -260,8 +258,7 @@ const capitalize = (value) => {
     return value.charAt(0).toUpperCase() + value.slice(1);
 };
 
-function formatTimeString(timeString) {
-    // Split the time string by `:` and take the first two components (hours and minutes)
+function formatTimeString(timeString) { // Split the time string by `:` and take the first two components (hours and minutes)
     let [hours, minutes] = timeString.split(':');
     return `${hours}:${minutes}`;
 }
@@ -299,11 +296,8 @@ const saveChanges = async (week_number, department_id, schedule_data) => {
         }
     },)
         .then((response) => {
-            Object.keys(weekly_schedule).forEach(key => {
-                delete weekly_schedule[key];
-            });
-            console.log(response.data);
-            Object.assign(weekly_schedule, response.data);
+            weekly_schedule.length = 0;
+            weekly_schedule.push(response.data.weekly_schedule);
             fetchWeekDates(getSelectedYear(selected_month), selected_week.weekNumber);
             toast.success(`${response.data.message}`, toast_options);
         });
@@ -342,9 +336,8 @@ const consolidateSchedules = () => {
     })
 }
 
-const moveUser = (array, index, direction) => {
-    console.log(weekly_schedule);
-    const users = array;
+const moveUser = (object, object_index, index, direction) => {
+    const users = object[object_index].schedule_data.users;
 
       if (direction === "up" && index >= 1) {
         // Swap the current user with the one above
@@ -430,6 +423,7 @@ onMounted(async () => {
                                     :disabled="!selected_month" v-model="selected_week"
                                     @change="getWeeklySchedule(selected_week.weekNumber, selected_department_id); fetchWeekDates(getSelectedYear(selected_month), selected_week.weekNumber);">
                                     <option value="" disabled selected>Selecciona una semana</option>
+                                    <option value="all" :hidden="!selected_week">Todas las semanas del mes</option>
                                     <!-- Placeholder option -->
                                     <option v-for="week in week_dates_by_month" :key="week" :value="week">
                                         Semana[{{ week.weekNumber }}] {{ week.startDate }} a {{ week.endDate }}
@@ -484,7 +478,7 @@ onMounted(async () => {
                     </div>
 
                     <!-- START MULTI TABLES -->
-                    <div v-if="selected_month && !selected_week" class="pb-14 grid items-center justify-center text-gray-900 dark:text-gray-100">
+                    <div v-if="(selected_month && !selected_week) || (selected_month && selected_week === 'all')" class="pb-14 grid items-center justify-center text-gray-900 dark:text-gray-100">
                         <div v-for="(weekly_schedule, weekly_schedule_index) in weekly_schedules_for_month" :key="weekly_schedule_index" class="relative overflow-x-auto my-5">
                             <h4 v-if="Object.keys(weekly_schedule).length > 0" class="header m-2"> Semana: <span class="bold text-violet-400"> {{ weekly_schedule.week_number }} </span> | <span class="bold text-green-200"> {{ formatDateToDDMMYYYY(getFirstElement(weekly_schedule.schedule_data.schedules[0]).date) }} </span> a <span class="bold text-green-200"> {{ formatDateToDDMMYYYY(getLastElement(weekly_schedule.schedule_data.schedules[0]).date) }} </span> | 
                                 <button @click="getWeeklySchedule(weekly_schedule.week_number, selected_department_id), closeEditing()" class="text-yellow-300"><i class="text-md text-yellow-300 fa-solid fa-rotate"></i> Recargar tabla</button> |
@@ -511,7 +505,7 @@ onMounted(async () => {
                                 </thead>
                                 <tbody>
                                     <!-- Loop through each user data array -->
-                                    <tr v-for="(user, user_index) in weekly_schedule.schedule_data.users" :key="user_index" class=" bg-white border-b dark:bg-gray-800 dark:border-gray-500" :class="[(user[user_index].id == 8 || user[user_index].id == 9) ? 'reduced_contract' : '']"><!-- :class="[(user.user.id == 8 || user.user.id == 9) ? 'reduced_contract' : '']" -->
+                                    <tr v-for="(user, user_index) in weekly_schedule.schedule_data.users" :key="user_index" class=" bg-white border-b dark:bg-gray-800 dark:border-gray-500" :class="[(user[user_index].id == 8 || user[user_index].id == 9) ? 'reduced_contract' : '']">
                                             <td scope="row"
                                                 class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l bg-gray-600 dark:border-gray-500 dark:text-white"
                                                 :class="[(user[user_index].id == 8 || user[user_index].id == 9) ? 'reduced_contract' : '',]"
@@ -519,14 +513,14 @@ onMounted(async () => {
                                                 <template v-if="is_editing && edit_state.row === user_index && edit_state.table === weekly_schedule_index">
                                                     <i class="fa-solid fa-user"></i> {{ user[user_index].name }}
                                                         <button
-                                                            @click="moveUser(weekly_schedule, user_index, 'up')" 
+                                                            @click="moveUser(weekly_schedules_for_month, weekly_schedule_index , user_index, 'up')" 
                                                             :disabled="user_index === 0" 
                                                             class="btn btn-sm btn-primary border mx-1 border-green-200 transition ease-in-out duration-300 hover:text-green-400"
                                                             >
                                                             <i class="transition ease-in-out duration-300 text-xm text-green-500 hover:text-green-600 m-2 fa-solid fa-arrow-up"></i>
                                                         </button>
                                                         <button
-                                                            @click="moveUser(weekly_schedule, user_index, 'down')" 
+                                                            @click="moveUser(weekly_schedules_for_month, weekly_schedule_index , user_index, 'down')" 
                                                             :disabled="user_index === weekly_schedule.schedule_data.users.length - 1" 
                                                             class="btn btn-sm btn-secondary border mx-1 border-red-200 transition ease-in-out duration-300 hover:text-red-400"
                                                             >
@@ -585,118 +579,110 @@ onMounted(async () => {
                     </div>
 
 
-
                     <!-- START SINGLE TABLE -->
-
-                    <div v-if="selected_week" class="pb-14 flex items-center justify-center text-gray-900 dark:text-gray-100">
-                        <div class="relative overflow-x-auto mt-5">
-                            <h4 v-if="Object.keys(weekly_schedule).length > 0 && selected_week.weekNumber" class="header m-2"> Semana: <span class="bold text-violet-400"> {{ selected_week?.weekNumber }} </span> | <span class="bold text-green-200"> {{ selected_week?.startDate }} </span> a <span class="bold text-green-200"> {{ selected_week?.endDate }} </span> | 
-                                <button @click="getWeeklySchedule(selected_week.weekNumber, selected_department_id), closeEditing()" class="text-yellow-300"><i class="text-md text-yellow-300 fa-solid fa-rotate"></i> Recargar tabla</button> |
-                                <button @click="saveChanges(selected_week.weekNumber, selected_department_id, weekly_schedule), closeEditing()" class="text-green-400"><i class="text- text-green-400 fa-solid fa-floppy-disk"></i> Grabar imagen</button>
-                            </h4>
-                            <table v-if="Object.keys(weekly_schedule).length > 0" class="w-full text-sm text-left rtl:text-right border dark:border-gray-600 text-gray-500 dark:text-gray-400">
-                                <thead
-                                    class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                                    <tr>
-                                        <th scope="col" class="px-6 py-3">Turno</th>
-                                        <th scope="col" class="px-6 py-3"
-                                            v-for="(day_of_week, index) in formatted_data_indexes" :key="index"> {{ day_of_week }}
-                                        </th>
-                                        <th class="">Editar</th>
-                                        <!-- <th scope="col" class="px-6 py-3"></th> -->
-                                    </tr>
-                                    <tr v-if="(week_date_range_dates.length > 0)">
-                                        <th scope="col" class="px-6 py-1"></th>
-                                        <th scope="col" class="px-6 py-1" v-for="date in week_date_range_dates" :key="date" >
-                                            <span class="text-green-100" :class="[checkTodayMatch(date) ? 'today_th' : '', ]">{{ date }}</span>
-                                        </th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <!-- Loop through each user data array -->
-                                    <tr v-for="(user, user_index) in weekly_schedule[0].schedule_data.users" :key="user_index" class=" bg-white border-b dark:bg-gray-800 dark:border-gray-500" :class="[(user[user_index].id == 8 || user[user_index].id == 9) ? 'reduced_contract' : '']"><!-- :class="[(user.user.id == 8 || user.user.id == 9) ? 'reduced_contract' : '']" -->
-                                            <td scope="row"
-                                                class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l bg-gray-600 dark:border-gray-500 dark:text-white"
-                                                :class="[(user[user_index].id == 8 || user[user_index].id == 9) ? 'reduced_contract' : '',]"
-                                                >
-                                                <template v-if="is_editing && edit_state.row === user_index">
-                                                    <i class="fa-solid fa-user"></i> {{ user[user_index].name }}
-                                                        <button
-                                                            @click="moveUser(weekly_schedule[0], user_index, 'up')" 
-                                                            :disabled="user_index === 0" 
-                                                            class="btn btn-sm btn-primary border mx-1 border-green-200 transition ease-in-out duration-300 hover:text-green-400"
-                                                            >
-                                                            <i class="transition ease-in-out duration-300 text-xm text-green-500 hover:text-green-600 m-2 fa-solid fa-arrow-up"></i>
-                                                        </button>
-                                                        <button
-                                                            @click="moveUser(weekly_schedule[0], user_index, 'down')" 
-                                                            :disabled="user_index === weekly_schedule[0].schedule_data.users.length - 1" 
-                                                            class="btn btn-sm btn-secondary border mx-1 border-red-200 transition ease-in-out duration-300 hover:text-red-400"
-                                                            >
-                                                            <i class="transition ease-in-out duration-300 text-xm text-red-500 hover:text-red-400 m-2 fa-solid fa-arrow-down"></i>
-                                                        </button>
-                                                </template>
-                                                <template v-else>
-                                                    <i class="fa-solid fa-user"></i> {{ user[user_index].name }}
-                                                </template>
-                                            </td>
-                                            <td v-for="(schedule, schedule_index) in weekly_schedule[0].schedule_data.schedules[user_index]" :key="schedule_index" scope="row"
-                                                class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l dark:border-gray-500 dark:text-white"
-                                                :class="[(user[schedule_index].is_night_shift) ? 'is_night_shift' : '',
-                                                        (schedule.start_time === '00:00' && schedule.end_time === '00:00' && (user[user_index].id == 8 || user[user_index].id == 9)) ? 'free_day reduced_contract' : 
-                                                        (schedule.start_time === '00:00' && schedule.end_time === '00:00' && (schedule.is_weekend_day)) ? 'free_day' : schedule.is_weekend_day ? 'free_day' : '', 
-                                                        (user[schedule_index].is_holiday && user[schedule_index].holiday_state ===2) ? 'is_confirmed_holiday' : '', 
-                                                        (user[schedule_index].is_not_available) ? 'is_not_available' : '', ]">
-                                                <template v-if="is_editing && edit_state.row === user_index">
-                                                    <select v-model="schedule.start_time" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full p-1.5 my-1 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
-                                                        <option selected disabled default :value="schedule.start_time">{{ schedule.start_time }}</option>
-                                                        <option v-for="(value, key) in schedule_hour_selector" :key="key" :value="key">{{ value }}</option>
-                                                    </select>
-                                                    <select v-model="schedule.end_time" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full p-1.5 my-1 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
-                                                        <option selected :value="schedule.end_time">{{ schedule.end_time }}</option>
-                                                        <option v-for="(value, key) in schedule_hour_selector" :key="key" :value="key">{{ value }}</option>
-                                                    </select>
-                                                    <div class="flex justify-center">
-                                                        <input type="checkbox" v-model="schedule.is_weekend_day" :checked="schedule.is_weekend_day === true" class="mr-1 w-3.5 h-3.5 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-green-500 dark:border-gray-600"/>
-                                                        <input type="checkbox" v-model="user[schedule_index].is_holiday" @change="updateHolidayCheckbox(user[schedule_index], $event.target.checked)" :checked="user[schedule_index].is_holiday === true" class="mr-1 w-3.5 h-3.5 text-yellow-500 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-yellow-500 dark:border-gray-600"/>
-                                                        <input type="checkbox" v-model="user[schedule_index].is_night_shift" :checked="user[schedule_index].is_night_shift === true" class="mr-1 w-3.5 h-3.5 text-red-400 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-red-400 dark:border-gray-600"/>
-                                                        <input type="checkbox" v-model="user[schedule_index].is_not_available" :checked="user[schedule_index].is_not_available === true" class="mr-1 w-3.5 h-3.5 text-yellow-300 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-yellow-200 dark:border-gray-600"/>
-                                                    </div>
-                                                </template>
-                                                <template v-else>
-                                                    <!-- {{ day_index }}: {{ day }} -->
-                                                    {{ user[schedule_index].is_not_available ? 'BAJA' :
-                                                    schedule.start_time === '00:00' && schedule.end_time === '00:00' && schedule.is_weekend_day ? 'LIBRE' : 
-                                                    schedule.is_weekend_day ? 'LIBRE' :
-                                                    user[schedule_index].is_holiday && user[schedule_index].holiday_state ===2 ? 'VACACIONES' :
-                                                    schedule.start_time + ' - ' + schedule.end_time }}
-                                                </template>
-                                            </td>
-                                            <td class="w-14 pl-2 flex-end">
-                                                <template v-if="is_editing && edit_state.row === user_index">
-                                                    <button @click="closeEditing(user_index)"><i class="p-1 m-1 text-2xl text-red-400 fa-solid fa-xmark"></i></button>
-                                                </template>
-                                                <template v-else>
-                                                    <button @click="startEditing(user_index)"><i class="p-1 m-1 text-2xl text-yellow-200 fa-regular fa-pen-to-square"></i></button>
-                                                </template>
-                                            </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                            <p v-else>No hay datos sobre el departamento para este mes y semana.</p>
+                    <template v-if="weekly_schedule.length > 0 && selected_week !== 'all'">
+                        <div v-if="selected_week" class="pb-14 flex items-center justify-center text-gray-900 dark:text-gray-100">
+                            <div class="relative overflow-x-auto mt-5">
+                                <h4 v-if="Object.keys(weekly_schedule).length > 0 && selected_week.weekNumber" class="header m-2"> Semana: <span class="bold text-violet-400"> {{ selected_week?.weekNumber }} </span> | <span class="bold text-green-200"> {{ selected_week?.startDate }} </span> a <span class="bold text-green-200"> {{ selected_week?.endDate }} </span> | 
+                                    <button @click="getWeeklySchedule(selected_week.weekNumber, selected_department_id), closeEditing()" class="text-yellow-300"><i class="text-md text-yellow-300 fa-solid fa-rotate"></i> Recargar tabla</button> |
+                                    <button @click="saveChanges(selected_week.weekNumber, selected_department_id, weekly_schedule[0]), closeEditing()" class="text-green-400"><i class="text- text-green-400 fa-solid fa-floppy-disk"></i> Grabar imagen</button>
+                                </h4>
+                                <table v-if="Object.keys(weekly_schedule).length > 0" class="w-full text-sm text-left rtl:text-right border dark:border-gray-600 text-gray-500 dark:text-gray-400">
+                                    <thead
+                                        class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                                        <tr>
+                                            <th scope="col" class="px-6 py-3">Turno</th>
+                                            <th scope="col" class="px-6 py-3"
+                                                v-for="(day_of_week, index) in formatted_data_indexes" :key="index"> {{ day_of_week }}
+                                            </th>
+                                            <th class="">Editar</th>
+                                        </tr>
+                                        <tr v-if="(week_date_range_dates.length > 0)">
+                                            <th scope="col" class="px-6 py-1"></th>
+                                            <th scope="col" class="px-6 py-1" v-for="date in week_date_range_dates" :key="date" >
+                                                <span class="text-green-100" :class="[checkTodayMatch(date) ? 'today_th' : '', ]">{{ date }}</span>
+                                            </th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Loop through each user data array -->
+                                        <template v-if="weekly_schedule[0] && selected_week !== 'all'">
+                                            <tr v-for="(user, user_index) in weekly_schedule[0].schedule_data.users" :key="user_index" class=" bg-white border-b dark:bg-gray-800 dark:border-gray-500" :class="[(user[user_index].id == 8 || user[user_index].id == 9) ? 'reduced_contract' : '']">
+                                                    <td scope="row"
+                                                        class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l bg-gray-600 dark:border-gray-500 dark:text-white"
+                                                        :class="[(user[user_index].id == 8 || user[user_index].id == 9) ? 'reduced_contract' : '',]"
+                                                        >
+                                                        <template v-if="is_editing && edit_state.row === user_index">
+                                                            <i class="fa-solid fa-user"></i> {{ user[user_index].name }}
+                                                                <button
+                                                                    @click="moveUser(weekly_schedule, 0, user_index, 'up')" 
+                                                                    :disabled="user_index === 0" 
+                                                                    class="btn btn-sm btn-primary border mx-1 border-green-200 transition ease-in-out duration-300 hover:text-green-400"
+                                                                    >
+                                                                    <i class="transition ease-in-out duration-300 text-xm text-green-500 hover:text-green-600 m-2 fa-solid fa-arrow-up"></i>
+                                                                </button>
+                                                                <button
+                                                                    @click="moveUser(weekly_schedule, 0, user_index, 'down')" 
+                                                                    :disabled="user_index === weekly_schedule[0].schedule_data.users.length - 1" 
+                                                                    class="btn btn-sm btn-secondary border mx-1 border-red-200 transition ease-in-out duration-300 hover:text-red-400"
+                                                                    >
+                                                                    <i class="transition ease-in-out duration-300 text-xm text-red-500 hover:text-red-400 m-2 fa-solid fa-arrow-down"></i>
+                                                                </button>
+                                                        </template>
+                                                        <template v-else>
+                                                            <i class="fa-solid fa-user"></i> {{ user[user_index].name }}
+                                                        </template>
+                                                    </td>
+                                                    <td v-for="(schedule, schedule_index) in weekly_schedule[0].schedule_data.schedules[user_index]" :key="schedule_index" scope="row"
+                                                        class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l dark:border-gray-500 dark:text-white"
+                                                        :class="[(user[schedule_index].is_night_shift) ? 'is_night_shift' : '',
+                                                                (schedule.start_time === '00:00' && schedule.end_time === '00:00' && (user[user_index].id == 8 || user[user_index].id == 9)) ? 'free_day reduced_contract' : 
+                                                                (schedule.start_time === '00:00' && schedule.end_time === '00:00' && (schedule.is_weekend_day)) ? 'free_day' : schedule.is_weekend_day ? 'free_day' : '', 
+                                                                (user[schedule_index].is_holiday && user[schedule_index].holiday_state ===2) ? 'is_confirmed_holiday' : '', 
+                                                                (user[schedule_index].is_not_available) ? 'is_not_available' : '', ]">
+                                                        <template v-if="is_editing && edit_state.row === user_index">
+                                                            <select v-model="schedule.start_time" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full p-1.5 my-1 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                                                <option selected disabled default :value="schedule.start_time">{{ schedule.start_time }}</option>
+                                                                <option v-for="(value, key) in schedule_hour_selector" :key="key" :value="key">{{ value }}</option>
+                                                            </select>
+                                                            <select v-model="schedule.end_time" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full p-1.5 my-1 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                                                <option selected :value="schedule.end_time">{{ schedule.end_time }}</option>
+                                                                <option v-for="(value, key) in schedule_hour_selector" :key="key" :value="key">{{ value }}</option>
+                                                            </select>
+                                                            <div class="flex justify-center">
+                                                                <input type="checkbox" v-model="schedule.is_weekend_day" :checked="schedule.is_weekend_day === true" class="mr-1 w-3.5 h-3.5 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-green-500 dark:border-gray-600"/>
+                                                                <input type="checkbox" v-model="user[schedule_index].is_holiday" @change="updateHolidayCheckbox(user[schedule_index], $event.target.checked)" :checked="user[schedule_index].is_holiday === true" class="mr-1 w-3.5 h-3.5 text-yellow-500 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-yellow-500 dark:border-gray-600"/>
+                                                                <input type="checkbox" v-model="user[schedule_index].is_night_shift" :checked="user[schedule_index].is_night_shift === true" class="mr-1 w-3.5 h-3.5 text-red-400 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-red-400 dark:border-gray-600"/>
+                                                                <input type="checkbox" v-model="user[schedule_index].is_not_available" :checked="user[schedule_index].is_not_available === true" class="mr-1 w-3.5 h-3.5 text-yellow-300 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-yellow-200 dark:border-gray-600"/>
+                                                            </div>
+                                                        </template>
+                                                        <template v-else>
+                                                            <!-- {{ day_index }}: {{ day }} -->
+                                                            {{ user[schedule_index].is_not_available ? 'BAJA' :
+                                                            schedule.start_time === '00:00' && schedule.end_time === '00:00' && schedule.is_weekend_day ? 'LIBRE' : 
+                                                            schedule.is_weekend_day ? 'LIBRE' :
+                                                            user[schedule_index].is_holiday && user[schedule_index].holiday_state ===2 ? 'VACACIONES' :
+                                                            schedule.start_time + ' - ' + schedule.end_time }}
+                                                        </template>
+                                                    </td>
+                                                    <td class="w-14 pl-2 flex-end">
+                                                        <template v-if="is_editing && edit_state.row === user_index">
+                                                            <button @click="closeEditing(user_index)"><i class="p-1 m-1 text-2xl text-red-400 fa-solid fa-xmark"></i></button>
+                                                        </template>
+                                                        <template v-else>
+                                                            <button @click="startEditing(user_index)"><i class="p-1 m-1 text-2xl text-yellow-200 fa-regular fa-pen-to-square"></i></button>
+                                                        </template>
+                                                    </td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                                <p v-else>No hay datos sobre el departamento para este mes y semana.</p>
+                            </div>
                         </div>
-                    </div>
-                                    <!--<tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-                                        <td scope="row"
-                                            class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"></td>
-                                        <td scope="row"
-                                            class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"></td>
-                                        <td scope="row"
-                                            class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-gray-600 italic"></td>
-                                    </tr> -->
-
-                                    <!-- END TABLE -->
+                    </template>
+                        <!-- END TABLE -->
 
                     <div v-if="loading" role="status" class="flex items-center justify-center mb-12"> <!-- WHILE LOADING -->
                         <svg aria-hidden="true"
@@ -788,8 +774,3 @@ onMounted(async () => {
   }
 }
 </style>
-
-<!-- 
-{{ getWeekNumber(moment()) }}</span> | <span class="bold text-green-200">{{ formatDate(week_date_range.start_date) }}</span> a <span class="bold text-green-200">{{ formatDate(week_date_range.end_date) }}</span> -->
-
-
