@@ -86,9 +86,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/schedule/weekly/{week_number}/{department_id}', [ScheduleController::class, 'weeklySchedule'])
         ->name('getWeeklySchedule');
 
-/*     Route::get('schedule/weekly/{week_number}/{department_id}', [ScheduleController::class, 'getDailyAvailableUsers'])
-        ->name('weeklySchedule'); */
-
     /* ---VACATION MANAGER ROUTES--- */
     // This route renders the 'Vacations' view
     Route::get('/manager', [ManagerController::class, 'index'])
