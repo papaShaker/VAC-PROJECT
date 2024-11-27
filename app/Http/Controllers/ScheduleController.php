@@ -329,9 +329,6 @@ class ScheduleController extends Controller
         $availability = null;
         $users_array = $users->toArray();
         $available_users_limit_index = $users->count() - 1;
-        $rotation_index = ($rotation_index && $rotation_index < $available_users_limit_index) ? $rotation_index : 0;
-        $inverse_rotation = $available_users_limit_index * 2;
-        $rotation_counter = $available_users_limit_index - $rotation_index;
 
         if ($rotation_index === 0 || $rotation_index > $available_users_limit_index){
             foreach($users_array as $index => $element) { //Sets the object so that these 2 users appear at first index (0) in the final weekly schedule object.
@@ -348,15 +345,14 @@ class ScheduleController extends Controller
                     break;
                 } 
             }
-            //ASJDLASDLKJASLSDJLASJD
+
         }
-        dd($available_users_limit_index);
         if ($rotation_index !== 0 && $rotation_index <= $available_users_limit_index ) {
-            dd("ENTRA");
-            for ($i = $rotation_counter; $i <= $available_users_limit_index; $i++) {
-                if($inverse_rotation >= $available_users_limit_index) {
-                    $element_to_move = $users_array[$available_users_limit_index - $inverse_rotation];
-                    unset($users_array[$available_users_limit_index - $inverse_rotation]);
+            $rotation_max = $rotation_index + $available_users_limit_index;            
+            for ($i = 0; $i <= $available_users_limit_index; $i++) {
+                if($i <= $available_users_limit_index) {
+                    $element_to_move = $users_array[$i];
+                    unset($users_array[$i]);
                     array_unshift($users_array, $element_to_move);
                     foreach($users_array as $index => $element) { //Sets the object so that these 2 users appear at first index (0) in the final weekly schedule object.
                         if ($element['id'] == 9) {
@@ -373,11 +369,9 @@ class ScheduleController extends Controller
                             break;
                         } 
                     }
-                    $inverse_rotation--;
                     $i++;
-                } else if ($inverse_rotation < $available_users_limit_index){
-                    $inverse_rotation = $available_users_limit_index - $rotation_index;
-                    $inverse_rotation--;
+                } else if ($i > $available_users_limit_index){
+                    $rotation_index = 0;
                     $i++;
                 }
             }
@@ -460,7 +454,7 @@ class ScheduleController extends Controller
         $set_week['users'] = $programmed_users;
         $set_week['schedules'] = ($passed_schedules === null) ? $programmed_schedules : $passed_schedules;
         $rotation_index++;
-        dd($rotation_index);
+        dump($rotation_index);
         return ['set_week' => $set_week, 'rotation_index' => $rotation_index];
     }
 
@@ -598,7 +592,7 @@ class ScheduleController extends Controller
         if ($week_number && $week_number === 1) {
             $previous_week_number = 52;
         } else {
-            $previous_week_number = --$week_number;
+            $previous_week_number = $week_number - 1;
         }
 
         // Check if a record with the same department_id and week_number exists
@@ -610,11 +604,13 @@ class ScheduleController extends Controller
             ->where('week_number', $previous_week_number)
             ->first();
 
+        
         if($previous_week && $previous_week->rotation !== 0) {
             $rotation_index = $previous_week->rotation;
         }
         
         if ($weekly_schedule){
+
             $data = [
                 'weekly_schedule' => $weekly_schedule,
             ];
