@@ -13,6 +13,7 @@ const props = defineProps({
 
 const weekly_schedules_for_month = reactive([]);
 const weekly_schedule = reactive([]);
+///const last_weekly_schedule_image = reactive([]);
 const today = new Date();
 const consolidated_schedules = reactive([]);
 const week_date_range_dates = reactive([]);
@@ -71,7 +72,7 @@ const getWeeklySchedule = async (week_numb_param, dep_id_param) => {
 const getWeeklySchedulesForMonth = async (department_id, year, month) => {
     weekly_schedules_for_month.length = 0;
     let weeks_generated = reactive([]);
-    let weeks_existent = reactive([]);
+    let weeks_available_data = reactive([]);
     try {
         let url = '/api/weekly_schedules_for_month/' + department_id + '/' + year + '/' + month;
         let response = await axios.get(url);
@@ -83,14 +84,15 @@ const getWeeklySchedulesForMonth = async (department_id, year, month) => {
                     weeks_generated.push(data.original.weekly_schedule.week_number);
                 } else {
                     weekly_schedules_for_month.push(data.weekly_schedule);
-                    weeks_existent.push(data.weekly_schedule.week_number);
+                    weeks_available_data.push(data.weekly_schedule.week_number);
                 }
+
             })
             if (weeks_generated.length > 0) {
                 toast.success(`Se han generado horarios para las semanas: ${weeks_generated}.`, toast_options);
             }
-            if (weeks_existent.length > 0) {
-                toast.warning(`Horarios para las semanas: ${weeks_existent} ya existen.`, toast_options);
+            if (weeks_available_data.length > 0) {
+                toast.warning(`Horarios para las semanas: ${weeks_available_data} ya existen.`, toast_options);
             }
         }
         console.log(weekly_schedules_for_month);
@@ -279,12 +281,13 @@ const closeEditing = (row_index, table_index) => {
 
 const saveChanges = async (week_number, department_id, schedule_data) => {
     loading.value = true;
-    console.log(schedule_data);
     let data;
     if (schedule_data && schedule_data.weekly_schedule && schedule_data.weekly_schedule.schedule_data) {
         data = schedule_data.weekly_schedule.schedule_data; // Access schedule_data if available
+        console.log("entrarara");
     } else {
         data = schedule_data; // Fall back to the original schedule_data
+        console.log("entrorororo");
     }
     let toRaw_data = toRaw(data);
     await axios.post('/schedule/saveweeklyschedule', {
@@ -302,6 +305,7 @@ const saveChanges = async (week_number, department_id, schedule_data) => {
             weekly_schedule.push(response.data.weekly_schedule);
             fetchWeekDates(getSelectedYear(selected_month), selected_week.weekNumber);
             toast.success(`${response.data.message}`, toast_options);
+
         });
 
     is_editing.value = false;
@@ -352,6 +356,18 @@ const moveUser = (object, object_index, index, direction) => {
       }
 }
 
+/* const burnImage = (image) => {
+    last_weekly_schedule_image.length = 0;
+    last_weekly_schedule_image.push(image);
+}
+
+const loadLastBurnedImage = (last_burned_image, data) => {
+    if (Array.isArray(data)) {
+        data.length = 0;
+        data.push(last_burned_image.value);
+    }
+    burnImage(data);
+} */
 
 const getFirstElement = (arr) => { return arr[0] };
 
@@ -487,7 +503,7 @@ onMounted(async () => {
                     <div v-for="(weekly_schedule, weekly_schedule_index) in weekly_schedules_for_month" :key="weekly_schedule_index" class="relative overflow-x-auto my-5">
                         <h4 v-if="Object.keys(weekly_schedule).length > 0" class="header m-2"> Semana: <span class="bold text-violet-400"> {{ week_dates_by_month[weekly_schedule_index].weekNumber }} </span> | <span class="bold text-green-200"> {{ week_dates_by_month[weekly_schedule_index].startDate }} </span> a <span class="bold text-green-200"> {{ week_dates_by_month[weekly_schedule_index].endDate }} </span> | 
                             <button @click="getWeeklySchedule(weekly_schedule.week_number, selected_department_id), closeEditing()" class="text-yellow-300"><i class="text-md text-yellow-300 fa-solid fa-rotate"></i> Recargar tabla</button> |
-                            <button @click="saveChanges(weekly_schedule.week_number, selected_department_id, weekly_schedule), closeEditing()" class="text-green-400"><i class="text- text-green-400 fa-solid fa-floppy-disk"></i> Grabar imagen</button>
+                            <button @click="saveChanges(weekly_schedule.week_number, selected_department_id, weekly_schedule), closeEditing();" class="text-green-400"><i class="text- text-green-400 fa-solid fa-floppy-disk"></i> Grabar imagen</button>
                         </h4>
                         <table v-if="Object.keys(weekly_schedule).length > 0" class="w-full text-sm text-left rtl:text-right border dark:border-gray-600 text-gray-500 dark:text-gray-400">
                             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
