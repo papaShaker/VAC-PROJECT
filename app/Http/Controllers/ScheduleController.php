@@ -372,7 +372,6 @@ class ScheduleController extends Controller
                         break;
                     } 
                 }
-            
                 
                 foreach($data['users'] as $index => $user_in_array) {
                     if($user_in_array['id'] == $user_element['id']) {
@@ -402,15 +401,21 @@ class ScheduleController extends Controller
                     ->where('user_availability_id', $availability->id)
                     ->get();
 
-                    $schedules = Schedule::where('day_of_week', $data['day_of_week'])->where('user_availability_id', $availability->id)->get();
+                    $schedules_array = $schedules->toArray();
+                    
+                    for ($i = 0; $i < $rotation_index; $i++) {
+                        $element_to_move = array_pop($schedules_array); // Take the last element
+                        array_splice($schedules_array, 1, 0, [$element_to_move]); // Move it to the 1st index
+                    }
+
                     foreach($data['users'] as $index => $user_in_array) {
                         if($user_in_array['id'] == $user_element['id']) {
                             $day = new \stdClass;
                             $day->date = $date;
                             $day->day_of_week = $day_of_week;
-                            $day->is_weekend_day = $schedules[$index]['is_free_day'];
-                            $day->start_time = $this->formattedTime($schedules[$index]['start_time']);
-                            $day->end_time = $this->formattedTime($schedules[$index]['end_time']);
+                            $day->is_weekend_day = $schedules_array[$index]['is_free_day'];
+                            $day->start_time = $this->formattedTime($schedules_array[$index]['start_time']);
+                            $day->end_time = $this->formattedTime($schedules_array[$index]['end_time']);
                             $schedule_week[] = $day;
                             /*                         $identifier = 'user_' . $user_element->id;
                                                         $parentObject->$identifier = $userObject; */
