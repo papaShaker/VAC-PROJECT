@@ -13,7 +13,7 @@ const props = defineProps({
 
 const weekly_schedules_for_month = reactive([]);
 const weekly_schedule = reactive([]);
-///const last_weekly_schedule_image = reactive([]);
+const last_weekly_schedule_image = reactive([]);
 const today = new Date();
 const consolidated_schedules = reactive([]);
 const week_date_range_dates = reactive([]);
@@ -71,6 +71,7 @@ const getWeeklySchedule = async (week_numb_param, dep_id_param) => {
 
 const getWeeklySchedulesForMonth = async (department_id, year, month) => {
     weekly_schedules_for_month.length = 0;
+    loading.value = true;
     let weeks_generated = reactive([]);
     let weeks_available_data = reactive([]);
     try {
@@ -79,6 +80,7 @@ const getWeeklySchedulesForMonth = async (department_id, year, month) => {
         if (response.data.length > 0) {
             console.log(response.data);
             response.data.forEach((data) =>{
+                loading.value = false;
                 if (data.original) {
                     weekly_schedules_for_month.push(data.original.weekly_schedule);
                     weeks_generated.push(data.original.weekly_schedule.week_number);
@@ -95,6 +97,7 @@ const getWeeklySchedulesForMonth = async (department_id, year, month) => {
                 toast.warning(`Horarios para las semanas: ${weeks_available_data} ya existen.`, toast_options);
             }
         }
+        saveLastBurnedImage();
         console.log(weekly_schedules_for_month);
     } catch (error) {
         toast.error(`Ha habido un error.`, toast_options);
@@ -109,6 +112,18 @@ const getWeeklySchedulesForMonth = async (department_id, year, month) => {
     let past_days_of_year = (date - first_jan + (first_jan.getTimezoneOffset() - date.getTimezoneOffset()) * 60000) / 86400000;
     return Math.ceil((past_days_of_year + first_jan.getDay() + 1) / 7);
 } */
+
+const loadLastBurnedImage = () => {
+    console.log('Loading last burned image:', last_weekly_schedule_image);
+    weekly_schedules_for_month.splice(0, weekly_schedules_for_month.length, ...last_weekly_schedule_image); 
+    console.log('Weekly schedules after load:', weekly_schedules_for_month);
+    saveLastBurnedImage();
+};
+
+const saveLastBurnedImage = () => {
+    last_weekly_schedule_image.splice(0, last_weekly_schedule_image.length, ...JSON.parse(JSON.stringify(toRaw(weekly_schedules_for_month))));
+    console.log('Saved last burned image:', last_weekly_schedule_image);
+};
 
 const getWeekNumber = (date) => {
     let today = moment();
@@ -356,19 +371,6 @@ const moveUser = (object, object_index, index, direction) => {
       }
 }
 
-/* const burnImage = (image) => {
-    last_weekly_schedule_image.length = 0;
-    last_weekly_schedule_image.push(image);
-}
-
-const loadLastBurnedImage = (last_burned_image, data) => {
-    if (Array.isArray(data)) {
-        data.length = 0;
-        data.push(last_burned_image.value);
-    }
-    burnImage(data);
-} */
-
 const getFirstElement = (arr) => { return arr[0] };
 
 const getLastElement = (arr) => { return arr[arr.length - 1] };
@@ -502,7 +504,7 @@ onMounted(async () => {
                 <div v-if="(selected_month && !selected_week) || (selected_month && selected_week === 'all')" class="pb-14 grid items-center justify-center text-gray-900 dark:text-gray-100">
                     <div v-for="(weekly_schedule, weekly_schedule_index) in weekly_schedules_for_month" :key="weekly_schedule_index" class="relative overflow-x-auto my-5">
                         <h4 v-if="Object.keys(weekly_schedule).length > 0" class="header m-2"> Semana: <span class="bold text-violet-400"> {{ week_dates_by_month[weekly_schedule_index].weekNumber }} </span> | <span class="bold text-green-200"> {{ week_dates_by_month[weekly_schedule_index].startDate }} </span> a <span class="bold text-green-200"> {{ week_dates_by_month[weekly_schedule_index].endDate }} </span> | 
-                            <button @click="getWeeklySchedule(weekly_schedule.week_number, selected_department_id), closeEditing()" class="text-yellow-300"><i class="text-md text-yellow-300 fa-solid fa-rotate"></i> Recargar tabla</button> |
+                            <button @click="loadLastBurnedImage(), closeEditing()" class="text-yellow-300"><i class="text-md text-yellow-300 fa-solid fa-rotate"></i> Recargar tabla</button> |
                             <button @click="saveChanges(weekly_schedule.week_number, selected_department_id, weekly_schedule), closeEditing();" class="text-green-400"><i class="text- text-green-400 fa-solid fa-floppy-disk"></i> Grabar imagen</button>
                         </h4>
                         <table v-if="Object.keys(weekly_schedule).length > 0" class="w-full text-sm text-left rtl:text-right border dark:border-gray-600 text-gray-500 dark:text-gray-400">
@@ -515,7 +517,7 @@ onMounted(async () => {
                                     <th class="">Editar</th>
                                     <!-- <th scope="col" class="px-6 py-3"></th> -->
                                 </tr>
-                                <tr ><!-- v-if="(weekly_schedule.schedule_data.schedules.length > 0)" -->
+                                <tr><!-- v-if="(weekly_schedule.schedule_data.schedules.length > 0)" -->
                                     <th scope="col" class="px-6 py-1"></th>
                                     <th scope="col" class="px-6 py-1" v-for="(date, date_index) in weekly_schedule.schedule_data.schedules[0]" :key="date_index">
                                         <span class="text-green-100" :class="[checkTodayMatch(formatDateToDDMMYYYY(date.date)) ? 'today_th' : '', ]">{{ formatDateToDDMMYYYY(date.date) }}</span>
@@ -575,7 +577,6 @@ onMounted(async () => {
                                             </div>
                                         </template>
                                         <template v-else>
-                                            <!-- {{ day_index }}: {{ day }} -->
                                             {{ user[schedule_index].is_not_available ? 'BAJA' :
                                             schedule.start_time === '00:00' && schedule.end_time === '00:00' && schedule.is_weekend_day ? 'LIBRE' : 
                                             schedule.is_weekend_day ? 'LIBRE' :
@@ -594,20 +595,22 @@ onMounted(async () => {
                                 </tr>
                             </tbody>
                         </table>
-                        <p v-else>No hay datos sobre el departamento para este mes y semana.</p>
+                        <div v-else class="flex justify-center pt-4">
+                            <p v-if="weekly_schedule_index === 0" class="text-green-200">No hay datos sobre el departamento para este mes y semana.</p>
+                        </div>
                     </div>
                 </div>
                     
 
                     <!-- START SINGLE TABLE -->
-                    <template v-if="weekly_schedule.length > 0 && selected_week !== 'all'">
+                    <template v-if="weekly_schedule[0].length > 0 && selected_week !== 'all'">
                         <div v-if="selected_week" class="pb-14 flex items-center justify-center text-gray-900 dark:text-gray-100">
-                            <div class="relative overflow-x-auto mt-5">
-                                <h4 v-if="weekly_schedule.length > 0 && selected_week.weekNumber" class="header m-2"> Semana: <span class="bold text-violet-400"> {{ selected_week?.weekNumber }} </span> | <span class="bold text-green-200"> {{ selected_week?.startDate }} </span> a <span class="bold text-green-200"> {{ selected_week?.endDate }} </span> | 
+                            <div v-if="weekly_schedule[0].schedule_data.length > 0" class="relative overflow-x-auto mt-5">
+                                <h4 v-if="weekly_schedule[0].schedule_data.length > 0 && selected_week.weekNumber" class="header m-2"> Semana: <span class="bold text-violet-400"> {{ selected_week?.weekNumber }} </span> | <span class="bold text-green-200"> {{ selected_week?.startDate }} </span> a <span class="bold text-green-200"> {{ selected_week?.endDate }} </span> | 
                                     <button @click="getWeeklySchedule(selected_week.weekNumber, selected_department_id), closeEditing()" class="text-yellow-300"><i class="text-md text-yellow-300 fa-solid fa-rotate"></i> Recargar tabla</button> |
                                     <button @click="saveChanges(selected_week.weekNumber, selected_department_id, weekly_schedule[0]), closeEditing()" class="text-green-400"><i class="text- text-green-400 fa-solid fa-floppy-disk"></i> Grabar imagen</button>
                                 </h4>
-                                <table v-if="weekly_schedule.length > 0" class="w-full text-sm text-left rtl:text-right border dark:border-gray-600 text-gray-500 dark:text-gray-400">
+                                <table v-if="weekly_schedule[0].schedule_data.length > 0" class="w-full text-sm text-left rtl:text-right border dark:border-gray-600 text-gray-500 dark:text-gray-400">
                                     <thead
                                         class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                                         <tr>
@@ -678,7 +681,6 @@ onMounted(async () => {
                                                             </div>
                                                         </template>
                                                         <template v-else>
-                                                            <!-- {{ day_index }}: {{ day }} -->
                                                             {{ user[schedule_index].is_not_available ? 'BAJA' :
                                                             schedule.start_time === '00:00' && schedule.end_time === '00:00' && schedule.is_weekend_day ? 'LIBRE' : 
                                                             schedule.is_weekend_day ? 'LIBRE' :
@@ -699,6 +701,9 @@ onMounted(async () => {
                                     </tbody>
                                 </table>
                                 <p v-else>No hay datos sobre el departamento para este mes y semana.</p>
+                            </div>
+                            <div v-else-if="!loading" class="flex justify-center pt-14 pb-8">
+                                <p class="text-green-200">No hay datos sobre el departamento para este mes y semana.</p>
                             </div>
                         </div>
                     </template>
@@ -749,13 +754,13 @@ onMounted(async () => {
 }
 .free_day{
     border-radius: 8px;
-    background-color:#4ade80 !important;
+    background:linear-gradient(#4ade80, #4ade80 40%, #4ade80 3%, #3bbe6b) !important;
     color: rgb(100, 107, 107);
 }
 .is_confirmed_holiday{
     border-radius: 8px;
-    background-color:#ca8a04 !important;
-    color: rgb(71, 71, 71);
+    background:linear-gradient(#f5ac10, #f5ac10 40%, #f5ac10 3%, #f0ab16) !important;
+    color: rgb(92, 88, 88);
     box-shadow: inset 0px 0px 15px rgba(251, 255, 0, 0.432) !important;
 }
 .is_not_available{

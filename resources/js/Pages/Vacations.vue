@@ -405,7 +405,9 @@ onMounted(async () => {
                                                   days.range_working_hours == 0 ? 'not_ranged_day' : '',
                                                   days.holiday == 1 ? 'pending_holiday' : '',
                                                   days.day_state == 1 ? 'today' : !month.previous_month && days.day_state == 0 ? 'passed_day' : '']"> <!-- calendar__number - actual month dates-->
-                                    <div class="">{{ days.day }}</div>
+                                    <div :class="[(!(month.prevous_month) && !(days.holiday == 2) && !days.day_selected && !(days.locked_already_requested_day && days.holiday == 0)
+                                                    && !(days.range_working_hours == 0) && !(days.holiday == 1) && !(days.day_state == 1) && !(!month.prevous_month && days.day_state == 0)) ? 'rounded hover:bg-green-100 hover:opacity-2 hover:text-green-400 px-1' : '']
+                                                    ">{{ days.day }}</div>
                                 </div>
                             </div>
                         </div> <!-- v-for - each Month div -->
@@ -419,7 +421,7 @@ onMounted(async () => {
                         </div>
                     </div> -->
                     <div class="flex w-full rounded-lg">
-                        <button class=" w-full rounded-lg btn btn-success text-2xl py-2 mx-2 mb-5 text-gray-200 bg-[#2f6442] " style="font-family: 'Abel', sans-serif;" :disabled="requesting_holidays" v-if="requested_holidays.length > 0" @click="requestHolidays()">Solicitar vacaciones</button>
+                        <button class=" w-full rounded-lg btn btn-success text-2xl py-2 mx-2 mb-5 text-gray-200 bg-green-800 hover:bg-green-600" style="font-family: 'Abel', sans-serif;" :disabled="requesting_holidays" v-if="requested_holidays.length > 0" @click="requestHolidays()">Solicitar vacaciones</button>
                     </div>
                 </div>
                 <ModalInfoHolidays v-if="show_modal_info_holidays" :isOpen="show_modal_info_holidays" @modal-close="closeModalInfoHolidays" name="modal-info-holidays" role="document">

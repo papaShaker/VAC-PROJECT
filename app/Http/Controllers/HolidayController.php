@@ -535,7 +535,7 @@ class HolidayController extends Controller
             try {
                 $user = User::find($user_notify);
                 $link = 'http://localhost:8000/vacations';
-                $confirmation_message = "Tu solicitud de vacaciones ha sido actualizada a" . ($request->update_to ? "Confirmada" : "Denegada") . "Haz clic en el siguiente enlace para revisar tus vacaciones.";
+                $confirmation_message = "Tu solicitud de vacaciones ha sido actualizada a " . ($request->update_to ? "'Confirmada'. " : "'Denegada'. ") . "Haz clic en el siguiente enlace para revisar tus vacaciones.";
                 try {
                     Mail::to($user->email)->send(new NotifyUserEmail($user, $days_string, $link, $confirmation_message));
                 } catch (\Throwable $e) {
@@ -544,7 +544,7 @@ class HolidayController extends Controller
     
                 return [
                     "status" => "Success",
-                    "text" => "Solicitud actualizada a " . ($request->update_to ? " Confirmada " : " Denegada ") . " correctamente.",
+                    "text" => "Solicitud actualizada a " . ($request->update_to ? "Confirmada " : "Denegada ") . "correctamente.",
                     "list" => $this->holidaysToConfirmList(),
                 ];
             } catch (Exception $ex) {

@@ -287,6 +287,18 @@ class ScheduleController extends Controller
                 return collect($user)->except(['nonworkingdayzone', 'job_ranges', 'holidays', 'holiday_zone'])->all();
             });
 
+            /* 
+                        if($department_id === '6'){
+            $available_users = $users
+            ->reject(fn($user) => $user['USU_nomPerfil'] !== 'booking')->values()
+            ->map(fn($user) => collect($user)->except(['job_ranges', 'holidays', 'holiday_zone'])->all()); 
+            } else {
+                $available_users = $users->map(function ($user) {
+                    return collect($user)->except(['holidays', 'USU_zoneFestius', 'job_ranges'])->all();
+                });
+            }
+            */
+
             $available_users_by_day[$date_string] = [
                 'users' => $available_users,
                 'count' => $available_users->count(),
@@ -327,8 +339,18 @@ class ScheduleController extends Controller
         $programmed_schedules = [];
         $users_schedule_index_counter = 0;
         $availability = null;
-        $users_array = $users->toArray();
         $available_users_limit_index = $users->count() - 1;
+
+        /* 
+                if($department_id === '6'){
+            $users = $users
+            ->reject(fn($user) => $user['USU_nomPerfil'] !== 'booking')->values();
+        }
+        */
+
+        $users_array = $users->toArray();
+
+        $exists = $users->contains(fn($user) => $user['USU_codi'] === 9); //CHECKS IF FIXED USER IS IN ARRAY
 
         if($rotation_index >= $available_users_limit_index){
             $rotation_index = 0;
@@ -393,13 +415,35 @@ class ScheduleController extends Controller
                 $programmed_users[$user_index] = $user_week;
 
                 if ($passed_schedules === null) {
+                    if (!$exists) {
+                        $count++;
+                    }
                     // Retrieve availability and schedules only once per date
                     $availability = $availability ?? UserAvailability::where('department_id', $department_id)
                     ->where('users_available', $count)
                     ->first();
+
+                    if(!$availability) {
+                        $availability = UserAvailability::where('department_id', $department_id)->orderBy('users_available', 'desc')->first();
+                        $add_rows = $count - $availability->users_available;
+                    }
+
                     $schedules = Schedule::where('day_of_week', $data['day_of_week'])
                     ->where('user_availability_id', $availability->id)
                     ->get();
+
+                    if(!$exists){
+                        $schedules = $schedules->reject(fn($schedule) => $schedule['user_group'] === 0)->values();
+                    }
+
+                    if($add_rows){
+                        for ($i = 0; $i < $add_rows; $i++){
+                            $row_to_add =clone $schedules[0];
+                            $row_to_add->start_time = "00:00:00";
+                            $row_to_add->end_time = "00:00:00";
+                            $schedules[] = $row_to_add;
+                        }
+                    }
 
                     $schedules_array = $schedules->toArray();
                     
