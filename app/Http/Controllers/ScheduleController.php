@@ -19,6 +19,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\WeeklyScheduleController;
 
+use function PHPUnit\Framework\isEmpty;
+
 class ScheduleController extends Controller
 {
     // Display a listing of the weekly schedules
@@ -224,9 +226,11 @@ class ScheduleController extends Controller
     }
 
 
-    public function getDailyAvailableUsers($week_number, $department_id, $rotation_index = null)
+    public function getDailyAvailableUsers($week_number, $department_id, $rotation_index = null, $year = null)
     {
-
+        if(!$year){
+            $year = now()->year;
+        }
         $year = now()->year;
         $start_of_week = Carbon::now()->setISODate($year, $week_number)->startOfWeek();
         $end_of_week = $start_of_week->copy()->endOfWeek();
@@ -333,13 +337,13 @@ class ScheduleController extends Controller
     }
     
     private function getWeeklySchedule($available_users_by_day, $users, $department_id, $rotation_index = null, $passed_schedules = null) {
-
         $set_week = [];
         $programmed_users = [];
         $programmed_schedules = [];
         $users_schedule_index_counter = 0;
         $availability = null;
         $available_users_limit_index = $users->count() - 1;
+        $add_rows = null;
 
         /* 
                 if($department_id === '6'){
@@ -587,28 +591,35 @@ class ScheduleController extends Controller
     public function getWeekNumbersForMonth($year, $month) {
         // Create a Carbon instance for the first day of the given month
         $start_of_month = Carbon::create($year, $month, 1);
-
+    
         // Get the total number of days in the month
         $days_in_month = $start_of_month->daysInMonth;
-
-        // Initialize an array to store week numbers
+    
+        // Initialize an array to store week numbers and years
         $week_numbers = [];
-
+    
+        // Initialize the current year
+        $current_year = $year;
+    
         // Loop through all days in the month
         for ($day = 1; $day <= $days_in_month; $day++) {
             $current_date = Carbon::create($year, $month, $day);
             $week_number = $current_date->weekOfYear;  // Get the week number for the current day
-            
-            // Add the week number to the array (avoid duplicates)
-            if (!in_array($week_number, $week_numbers)) {
-                $week_numbers[] = $week_number;
+    
+            // If the week number is 1 and the previous week number was 52, increment the year
+            if ($week_number == 1 && !empty($week_numbers) && end($week_numbers)['week'] == 52) {
+                $current_year++;
+            }
+    
+            // Add the week number and year to the array (avoid duplicates)
+            if (!in_array(['week' => $week_number, 'year' => $current_year], $week_numbers)) {
+                $week_numbers[] = ['week' => $week_number, 'year' => $current_year];
             }
         }
-
         return $week_numbers;
     }
-
-    public function weeklySchedule($week_number = null, $department_id = null){
+    
+    public function weeklySchedule($week_number = null, $department_id = null, $year = null){
 
         $rotation_index = 0;
         $previous_week_number = null;
@@ -621,10 +632,12 @@ class ScheduleController extends Controller
 
         // Check if a record with the same department_id and week_number exists
         $weekly_schedule = WeeklySchedule::where('department_id', $department_id)
+            ->where('year', $year)
             ->where('week_number', $week_number)
             ->first();
-
-        $previous_week = WeeklySchedule::where('department_id', $department_id)
+            
+            $previous_week = WeeklySchedule::where('department_id', $department_id)
+            ->where('year', $year)
             ->where('week_number', $previous_week_number)
             ->first();
 
@@ -640,18 +653,18 @@ class ScheduleController extends Controller
             ];
             return $data;
         } else {
-            
-            $schedule_data = $this->getDailyAvailableUsers($week_number, $department_id, $rotation_index); // ROTATION INDEX MUST BE PASSED HERE
-            $response = WeeklyScheduleController::saveWeeklySchedule($week_number, $department_id, $schedule_data);
-            return $response;
+                $schedule_data = $this->getDailyAvailableUsers($week_number, $department_id, $rotation_index, $year); // ROTATION INDEX MUST BE PASSED HERE
+                $response = WeeklyScheduleController::saveWeeklySchedule($week_number, $department_id, $schedule_data, $year);
+                return $response;
+            }
         }
-    }
+
 
     public function getWeeklySchedulesForMonth ($department_id, $year, $month) {
         $weekly_schedules_for_month = [];
         $weeks = $this->getWeekNumbersForMonth($year, $month);
         foreach ($weeks as $week_index => $week) {
-            $weekly_schedule = $this->weeklySchedule($week, $department_id); /* ROTATION INDEX/WEEK MUST BE INITIALIZED IN weeklySchedule FUNCTION */
+            $weekly_schedule = $this->weeklySchedule($week['week'], $department_id, $week['year']); /* ROTATION INDEX/WEEK MUST BE INITIALIZED IN weeklySchedule FUNCTION */
             $weekly_schedules_for_month[] = $weekly_schedule;
         }
         return $weekly_schedules_for_month;

@@ -14,13 +14,14 @@ return new class extends Migration
         Schema::create('weekly_schedules', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('department_id');
+            $table->integer('year');
             $table->integer('week_number');
             $table->json('schedule_data'); // Store the schedule as JSON
             $table->softDeletes(); // For soft delete
             $table->timestamps();
             
             // Add unique constraint on department_id and week_number
-            $table->unique(['department_id', 'week_number']);
+            $table->unique(['department_id', 'year', 'week_number']);
         });
     }
 

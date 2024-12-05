@@ -46,27 +46,29 @@ class WeeklyScheduleController extends Controller
         ], 201);
     } */
 
-    public static function saveWeeklySchedule($week_number = null, $department_id = null, $schedule_data = null, Request $request = null)
+    public static function saveWeeklySchedule($week_number = null, $department_id = null, $schedule_data = null, $year = null, Request $request = null)
     { //dd("AQUÍ");
         
         $request = request(); // Retrieve the current request
 
         // If no parameters are passed, use the request data
-        if ($request->has(['department_id', 'week_number', 'schedule_data', 'rotation'])) {
+        if ($request->has(['department_id', 'year', 'week_number', 'schedule_data', 'rotation'])) {
             //dd($request);
             $data = $request->validate([
                 'department_id' => 'required|integer',
+                'year' => 'required|integer',
                 'week_number' => 'required|integer',
                 'schedule_data' => 'required|array',
                 'rotation' => 'required|integer',
             ]);
             $week_number = $data["week_number"];
             $department_id = $data["department_id"];
+            $year = $data["year"];
             $schedule_data = $data["schedule_data"]["schedule_data"];
             $rotation = $data["schedule_data"]["rotation"];
         }
         // Validate input data if passed directly (when $request is null)
-        if (is_null($department_id) || is_null($week_number) || is_null($schedule_data)) { // + is_null(rotation)
+        if (is_null($department_id) || is_null($week_number) || is_null($schedule_data) || is_null($year)) { // + is_null(rotation)
 
             return response()->json(['status' => 'Error', 'message' => 'Missing parameters.'], 400);
         }
@@ -75,6 +77,7 @@ class WeeklyScheduleController extends Controller
         // Check if a record with the same department_id and week_number exists
         $weeklySchedule = WeeklySchedule::where('department_id', $department_id)
                                         ->where('week_number', $week_number)
+                                        ->where('year', $year)
                                         ->first();
 
         if ($weeklySchedule) {
@@ -87,13 +90,14 @@ class WeeklyScheduleController extends Controller
         } else {
 
             $data = ['department_id' => $department_id,
+                'year' => $year,
                 'week_number' => $week_number,
                 'schedule_data' => $schedule_data["set_week"],
                 'rotation' => $schedule_data["rotation_index"]]; //(check if schedule for prev week exists, if so, get the rotation and check )
             // Insert a new schedule
 
             $newWeeklySchedule = WeeklySchedule::create($data);
-            //dd($newWeeklySchedule); -> ON FIRST TRY ALL MONTHS
+            //dd($newWeeklySchedule); //-> ON FIRST TRY ALL MONTHS
             return response()->json(['status' => 'Success', 
                 'message' => 'Se ha generado un nuevo horario.', 
                 'weekly_schedule' => $newWeeklySchedule, ]);// Return updated schedule_data]);
