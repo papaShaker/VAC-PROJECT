@@ -1,16 +1,18 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, useForm } from '@inertiajs/vue3';
 import { ref, reactive, onMounted, onBeforeMount, toRaw, watch } from 'vue';
 import axios from 'axios';
 import moment from 'moment';
 import { DateTime } from 'luxon';
 import { toast } from 'vue3-toastify';
+import ModalSchedules from '@/Components/ModalSchedules.vue';
 
 const props = defineProps({
     departments: Array,
 });
 
+const is_schedules_open = ref(false);
 const weekly_schedules_for_month = reactive([]);
 const weekly_schedule = reactive([]);
 const last_weekly_schedule_image = reactive([]);
@@ -42,6 +44,20 @@ const edit_state = reactive({
     table: null,
     row: null,
 })
+
+const is_modal_open = ref(false);
+
+const modal_schedules = reactive({
+    department_id: selected_department_id,
+    user_availability: '',
+    form: [],
+});
+
+const form = useForm({
+    department_id: null,
+    users_available: null,
+    schedules: []
+});
 
 const toast_options = {
     closeOnClick: true,
@@ -117,6 +133,26 @@ const loadLastBurnedImage = () => {
 const saveLastBurnedImage = () => {
     last_weekly_schedule_image.splice(0, last_weekly_schedule_image.length, ...JSON.parse(JSON.stringify(toRaw(weekly_schedules_for_month))));
     console.log('Saved last burned image:', last_weekly_schedule_image);
+};
+
+
+const initializeForm = () => {
+    form.schedules = Array.from({ length: form.users_available }, (_, index) => ({
+        user_group: index,
+        days: days_of_week.map((_, index) => ({
+            day_of_week: index + 1,
+            start_time: '',
+            end_time: '',
+            user_availability_id: '',
+            is_free_day: '',
+        })),
+    }));
+};
+
+const addSchedules = () => {
+    form.schedules.post('', {}).then((response) => {
+        
+    })
 };
 
 /* const getWeekNumber = (date) => {
@@ -384,12 +420,12 @@ const change_selected_week_to_all = () => {
 
 onBeforeMount(async () => {
     getWeekDateRange(today);
-
+    is_modal_open.value = false;
+    is_schedules_open.value = false;
     await generateMonthOptions();
 })
 
 onMounted(async () => {
-
 });
 
 
@@ -405,7 +441,50 @@ onMounted(async () => {
                 style="font-family: 'Abel', sans-serif;">Bienvenido a Horario</h2>
         </template>
 
-        <div class="py-12">
+
+            <div class="pt-6">
+                <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                        <div class="p-2 flex justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
+                            <div class="flex items-center">
+  <!-- Toggle Switch -->
+  <label class="relative inline-flex items-center cursor-pointer">
+    <input type="checkbox" class="sr-only peer" :checked="is_schedules_open" @change="is_schedules_open = !is_schedules_open, is_modal_open = !is_modal_open">
+    <div
+      class="w-11 h-6 bg-gray-300 rounded-full peer-checked:bg-blue-500 
+             peer-focus:ring-2 peer-focus:ring-blue-300 transition-all">
+    </div>
+    <div
+      class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow 
+             peer-checked:translate-x-5 transition-transform"></div>
+  </label>
+
+  <!-- Label -->
+  <span class="ml-3 text-md font-medium text-white">Enable notifications</span>
+</div>
+<!--                             <div class="flex justify-center items-center space-x-5 items_spacing_y">
+                                <button class="w-[42vw] sm:w-[45vw] h-24 bg-gray-700 rounded-md" :class="[is_schedules_open ? 'bg-green-600 hover:bg-green-500/80' : 'bg-gray-700']" @click="is_schedules_open = !is_schedules_open, is_modal_open = false"> SCHEDULES </button>
+                                <button class="w-[42vw] sm:w-[45vw] h-24 bg-gray-700 rounded-md" :class="[is_modal_open ? 'bg-green-600 hover:bg-green-500/80' : 'bg-gray-700']" @click="is_modal_open = !is_modal_open, is_schedules_open = false"> ADD SCHEDULES </button>
+                            </div> -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+        <template v-if="is_modal_open">
+            <div class="pt-6">
+                <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                        <div class="p-4 flex justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
+                            <p>Is modal open!?</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+    <template v-if="is_schedules_open">
+        <div class="py-6">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-4 flex justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
@@ -430,7 +509,7 @@ onMounted(async () => {
                             <form class="flex max-w-sm mx-auto items-center">
                                 <label for="month"></label>
                                 <select
-                                    class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                                     :disabled="!selected_department_id" v-model="selected_month"
                                     @change="selected_month_label(); getWeeksForMonth(getSelectedYear(selected_month), getSelectedMonth(selected_month)); getWeeklySchedulesForMonth(selected_department_id, getSelectedYear(selected_month), getSelectedMonth(selected_month)); change_selected_week_to_all();">
                                     <option value="" disabled selected>Selecciona un mes</option>
@@ -550,11 +629,11 @@ onMounted(async () => {
                                                 @click="moveUser(weekly_schedules_for_month, weekly_schedule_index , user_index, 'down')" 
                                                 :disabled="user_index === weekly_schedule.schedule_data.users.length - 1" 
                                                 class="btn btn-sm btn-secondary border mx-1 border-red-200 transition ease-in-out duration-300 hover:text-red-400"
-                                                    >
-                                                    <i class="transition ease-in-out duration-300 text-xm text-red-500 hover:text-red-400 m-2 fa-solid fa-arrow-down"></i>
-                                                </button>
-                                            </template>
-                                            <template v-else>
+                                                >
+                                                <i class="transition ease-in-out duration-300 text-xm text-red-500 hover:text-red-400 m-2 fa-solid fa-arrow-down"></i>
+                                            </button>
+                                        </template>
+                                        <template v-else>
                                                 <i class="fa-solid fa-user"></i> {{ user[user_index].name }}
                                             </template>
                                     </td>
@@ -563,7 +642,8 @@ onMounted(async () => {
                                         :class="[(user[schedule_index].is_night_shift) ? 'is_night_shift' : '',
                                                 (schedule.start_time === '00:00' && schedule.end_time === '00:00' && (user[user_index].id == 8 || user[user_index].id == 9)) ? 'free_day reduced_contract' : 
                                                 (schedule.start_time === '00:00' && schedule.end_time === '00:00' && (schedule.is_weekend_day)) ? 'free_day' : schedule.is_weekend_day ? 'free_day' : '', 
-                                                (user[schedule_index].is_holiday) ? 'is_confirmed_holiday' : '', 
+                                                (user[schedule_index].is_holiday && user[schedule_index].holiday_state === 2) ? 'is_confirmed_holiday' : '', 
+                                                (user[schedule_index].is_holiday && user[schedule_index].holiday_state === 1) ? 'is_not_confirmed_holiday' : '', 
                                                 (user[schedule_index].is_not_available) ? 'is_not_available' : '', ]">
                                         <template v-if="is_editing && edit_state.row === user_index && edit_state.table === weekly_schedule_index">
                                             <select v-model="schedule.start_time" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full p-1.5 my-1 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
@@ -587,6 +667,7 @@ onMounted(async () => {
                                             schedule.start_time === '00:00' && schedule.end_time === '00:00' && schedule.is_weekend_day ? 'LIBRE' : 
                                             schedule.is_weekend_day ? 'LIBRE' :
                                             user[schedule_index].is_holiday && user[schedule_index].holiday_state ===2 ? 'VACACIONES' :
+                                            user[schedule_index].is_holiday && user[schedule_index].holiday_state ===1 ? schedule.start_time + ' - ' + schedule.end_time + ' ?' :
                                             schedule.start_time + ' - ' + schedule.end_time }}
                                         </template>
                                     </td>
@@ -606,19 +687,19 @@ onMounted(async () => {
                         </div>
                     </div>
                 </div>
-                    
-
-                    <!-- START SINGLE TABLE -->
-                    <template v-if="weekly_schedule.length > 0 && selected_week !== 'all'">
-                        <div v-if="selected_week" class="pb-14 flex items-center justify-center text-gray-900 dark:text-gray-100">
-                            <div v-if="weekly_schedule[0].schedule_data.length > 0" class="relative overflow-x-auto mt-5">
+                
+                
+                <!-- START SINGLE TABLE -->
+                <template v-if="weekly_schedule.length > 0 && selected_week !== 'all'">
+                    <div v-if="selected_week" class="pb-14 flex items-center justify-center text-gray-900 dark:text-gray-100">
+                        <div v-if="weekly_schedule[0].schedule_data.length > 0" class="relative overflow-x-auto mt-5">
                                 <h4 v-if="weekly_schedule[0].schedule_data.length > 0 && selected_week.weekNumber" class="header m-2"> Semana: <span class="bold text-violet-400"> {{ selected_week?.weekNumber }} </span> | <span class="bold text-green-200"> {{ selected_week?.startDate }} </span> a <span class="bold text-green-200"> {{ selected_week?.endDate }} </span> | 
                                     <button @click="getWeeklySchedule(selected_week.weekNumber, selected_department_id), closeEditing()" class="text-yellow-300"><i class="text-md text-yellow-300 fa-solid fa-rotate"></i> Recargar tabla</button> |
                                     <button @click="saveChanges(selected_week.weekNumber, selected_department_id, weekly_schedule[0]), closeEditing()" class="text-green-400"><i class="text- text-green-400 fa-solid fa-floppy-disk"></i> Grabar imagen</button>
                                 </h4>
                                 <table v-if="weekly_schedule[0].schedule_data.length > 0" class="w-full text-sm text-left rtl:text-right border dark:border-gray-600 text-gray-500 dark:text-gray-400">
                                     <thead
-                                        class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                                    class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                                         <tr>
                                             <th scope="col" class="px-6 py-3">Turno</th>
                                             <th scope="col" class="px-6 py-3"
@@ -652,10 +733,10 @@ onMounted(async () => {
                                                                 <i class="transition ease-in-out duration-300 text-xm text-green-500 hover:text-green-600 m-2 fa-solid fa-arrow-up"></i>
                                                             </button>
                                                             <button
-                                                                @click="moveUser(weekly_schedule, 0, user_index, 'down')" 
-                                                                :disabled="user_index === weekly_schedule[0].schedule_data.users.length - 1" 
-                                                                class="btn btn-sm btn-secondary border mx-1 border-red-200 transition ease-in-out duration-300 hover:text-red-400"
-                                                                >
+                                                            @click="moveUser(weekly_schedule, 0, user_index, 'down')" 
+                                                            :disabled="user_index === weekly_schedule[0].schedule_data.users.length - 1" 
+                                                            class="btn btn-sm btn-secondary border mx-1 border-red-200 transition ease-in-out duration-300 hover:text-red-400"
+                                                            >
                                                                 <i class="transition ease-in-out duration-300 text-xm text-red-500 hover:text-red-400 m-2 fa-solid fa-arrow-down"></i>
                                                             </button>
                                                     </template>
@@ -692,6 +773,7 @@ onMounted(async () => {
                                                         schedule.start_time === '00:00' && schedule.end_time === '00:00' && schedule.is_weekend_day ? 'LIBRE' : 
                                                         schedule.is_weekend_day ? 'LIBRE' :
                                                         user[schedule_index].is_holiday && user[schedule_index].holiday_state ===2 ? 'VACACIONES' :
+                                                        user[schedule_index].is_holiday && user[schedule_index].holiday_state ===1 ? schedule.start_time + ' - ' + schedule.end_time + ' ?' :
                                                         schedule.start_time + ' - ' + schedule.end_time }}
                                                     </template>
                                                 </td>
@@ -714,25 +796,26 @@ onMounted(async () => {
                             </div>
                         </div>
                     </template>
-                        <!-- END TABLE -->
-
+                    <!-- END TABLE -->
+                    
                     <div v-if="loading" role="status" class="flex items-center justify-center mb-12"> <!-- WHILE LOADING -->
                         <svg aria-hidden="true"
-                            class="inline w-10 h-10 text-gray-200 animate-spin dark:text-gray-600 fill-green-500"
-                            viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path
-                                d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
-                                fill="currentColor" />
-                            <path
-                                d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
-                                fill="currentFill" />
-                        </svg>
-                        <span class="sr-only">Loading...</span>
-                    </div>
+                        class="inline w-10 h-10 text-gray-200 animate-spin dark:text-gray-600 fill-green-500"
+                        viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                        d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+                        fill="currentColor" />
+                        <path
+                        d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+                        fill="currentFill" />
+                    </svg>
+                    <span class="sr-only">Loading...</span>
                 </div>
             </div>
         </div>
-    </AuthenticatedLayout>
+    </div>
+</template>
+</AuthenticatedLayout>
 </template>
 
 <style scoped>
