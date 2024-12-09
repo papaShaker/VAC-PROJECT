@@ -45,6 +45,12 @@ const showingNavigationDropdown = ref(false);
                                 </NavLink>
                             </div>
                         </div>
+                        
+                        <div class="hidden sm:flex sm:items-center sm:ms-6">
+                            <div class="mt-2 relative">
+                                <!-- Toggle Switch -->
+                            </div>
+                        </div>
 
                         <div class="hidden sm:flex sm:items-center sm:ms-6">
                             <!-- Settings Dropdown -->

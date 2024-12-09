@@ -670,4 +670,44 @@ class ScheduleController extends Controller
         return $weekly_schedules_for_month;
     }
 
+
+    public function checkForScheduleTemplate($department_id, $users_available) {
+        $schedule_template = UserAvailability::where('department_id', $department_id)
+            ->where('users_available', $users_available)
+            ->first();
+
+        if (empty($schedule_template)) {
+            return ['status' => 'Error', 'message' => 'No hay plantilla disponible para estos parámetros.'];
+        }
+
+        $user_availability_id = $schedule_template->id;
+
+        $schedules = Schedule::where('user_availability_id', $user_availability_id)
+            ->orderBy('user_group')
+            ->orderBy('day_of_week')
+            ->get()
+            ->groupBy('user_group')
+            ->map(function ($group) {
+                return $group->keyBy('day_of_week')
+                    ->map(function ($schedule) {
+                        return (object) [
+                            'day_of_week' => $schedule->day_of_week,
+                            'start_time' => $schedule->start_time,
+                            'end_time' => $schedule->end_time,
+                            'is_free_day' => $schedule->is_free_day,
+                        ];
+                    });
+            })
+            ->toArray();
+
+        return $schedules;
+    }
+
+    public function removeSchedules($user_availability_id) {
+
+    }
+
+    public function removeUserAvailability($id) {
+        
+    }
 }

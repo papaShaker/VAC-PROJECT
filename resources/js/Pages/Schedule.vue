@@ -1,7 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
-import { ref, reactive, onMounted, onBeforeMount, toRaw, watch } from 'vue';
+import { ref, reactive, onMounted, onBeforeMount, toRaw, watch, defineProps, defineEmits } from 'vue';
 import axios from 'axios';
 import moment from 'moment';
 import { DateTime } from 'luxon';
@@ -15,6 +15,9 @@ const props = defineProps({
 const is_schedules_open = ref(false);
 const weekly_schedules_for_month = reactive([]);
 const weekly_schedule = reactive([]);
+const existing_template_data = reactive([]);
+const existing_template_error = reactive([]);
+const users_available = ref(null);
 const last_weekly_schedule_image = reactive([]);
 const today = new Date();
 const consolidated_schedules = reactive([]);
@@ -39,13 +42,13 @@ const schedule_hour_selector = {
     '16:00': '16:00h', '17:00': '17:00h', '18:00': '18:00h', '19:00': '19:00h',
     '20:00': '20:00h', '21:00': '21:00h', '22:00': '22:00h', '23:00': '23:00h'
 }
+const admin_toggled = ref(false);
 const is_editing = ref(false);
 const edit_state = reactive({
     table: null,
     row: null,
 })
 
-const is_modal_open = ref(false);
 
 const modal_schedules = reactive({
     department_id: selected_department_id,
@@ -123,6 +126,24 @@ const getWeeklySchedulesForMonth = async (department_id, year, month) => {
 
 }
 
+const checkForScheduleTemplates = async (department_id, users_available) => {
+    existing_template_data.length = 0;
+    Object.keys(existing_template_error).forEach((key) => delete existing_template_error[key]);
+    console.log(department_id);
+    console.log(users_available);
+    await axios.get('/api/schedules_template_check/' + department_id + '/' + users_available).then((response) => {
+        console.log(response.data);
+        if(response.data.status === "Error"){
+            Object.assign(existing_template_error, response.data);
+            console.log(existing_template_error);
+        }
+        else {
+        existing_template_data.push(...response.data);
+        console.log(existing_template_data);
+        }
+    });
+}
+
 const loadLastBurnedImage = () => {
     console.log('Loading last burned image:', last_weekly_schedule_image);
     weekly_schedules_for_month.splice(0, weekly_schedules_for_month.length, ...last_weekly_schedule_image); 
@@ -139,7 +160,7 @@ const saveLastBurnedImage = () => {
 const initializeForm = () => {
     form.schedules = Array.from({ length: form.users_available }, (_, index) => ({
         user_group: index,
-        days: days_of_week.map((_, index) => ({
+        schedules: days_of_week.map((_, index) => ({
             day_of_week: index + 1,
             start_time: '',
             end_time: '',
@@ -420,8 +441,7 @@ const change_selected_week_to_all = () => {
 
 onBeforeMount(async () => {
     getWeekDateRange(today);
-    is_modal_open.value = false;
-    is_schedules_open.value = false;
+    admin_toggled.value = false;
     await generateMonthOptions();
 })
 
@@ -441,50 +461,158 @@ onMounted(async () => {
                 style="font-family: 'Abel', sans-serif;">Bienvenido a Horario</h2>
         </template>
 
+        <div class="pt-3" :class="[admin_toggled ? 'pt-3' : '']">
+    <div class="max-w-7xl mx-auto sm:mx-[10px] sm:px-4 lg:px-6">
+        <div
+            class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg p-4 lg:p-6"
+            :class="[(admin_toggled) ? 'admin_toggled' : '']"
+        >
+            <!-- Toggle Switch -->
+            <div class="flex justify-end items-center space-x-5 text-gray-900 dark:text-gray-100">
+                <div class="flex items-center">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            class="sr-only peer"
+                            :checked="admin_toggled"
+                            @change="admin_toggled = !admin_toggled"
+                        />
+                        <div
+                            class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-500 peer-focus:ring-1 peer-focus:ring-blue-100 transition-all"
+                        ></div>
+                        <div
+                            class="absolute text-gray-700 bg-white left-1 top-1 w-4 h-4 rounded-full shadow peer-checked:translate-x-5 transition-transform peer-checked:text-green-500 peer-checked:left-1.5"
+                        >
+                            <i class="fa-solid fa-wrench text-xs absolute top-0.4 left-0.5"></i>
+                        </div>
+                    </label>
+                </div>
+            </div>
 
-            <div class="pt-6">
-                <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                        <div class="p-2 flex justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
-                            <div class="flex items-center">
-  <!-- Toggle Switch -->
-  <label class="relative inline-flex items-center cursor-pointer">
-    <input type="checkbox" class="sr-only peer" :checked="is_schedules_open" @change="is_schedules_open = !is_schedules_open, is_modal_open = !is_modal_open">
-    <div
-      class="w-11 h-6 bg-gray-300 rounded-full peer-checked:bg-blue-500 
-             peer-focus:ring-2 peer-focus:ring-blue-300 transition-all">
+            <!-- Admin Toggled Content -->
+            <div
+                v-if="admin_toggled"
+                class="grid gap-5 lg:gap-2 lg:grid-cols-1 xl:grid-cols-5 text-gray-900 dark:text-gray-100"
+            >
+                <!-- Schedules Form -->
+                <div class="space-y-4 sm:flex sm:justify-around">
+                    <div class="flex flex-col lg:flex-row lg:items-center space-y-4 lg:space-y-0 lg:space-x-4">
+                        <!-- Department Selection -->
+                        <div class="flex flex-col lg:flex-row items-start lg:items-center w-full">
+                            <h4 class="mb-2 lg:mb-0 lg:mr-3">Departamento:</h4>
+                            <select
+                                id="departments"
+                                v-model="selected_department_id"
+                                @change="fetchDepartmentNameById(selected_department_id)"
+                                class="w-full lg:w-auto bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                            >
+                                <option selected disabled value="">Selecciona un departamento</option>
+                                <option
+                                    v-for="department in departments"
+                                    :key="department.id"
+                                    :value="department.id"
+                                >
+                                    {{ capitalize(department.name) }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- Number of Employees -->
+                        <div class="flex flex-col lg:flex-row items-start lg:items-center w-full">
+                            <h4 class="mb-2 lg:mb-0 lg:mr-3">Número de empleados:</h4>
+                            <input
+                                type="number"
+                                v-model="users_available"
+                                class="w-full lg:w-auto bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                placeholder="mín 2"
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <!-- Check Button -->
+                    <button
+                        @click="checkForScheduleTemplates(selected_department_id, users_available)"
+                        class="w-full lg:w-auto bg-green-600/70 hover:bg-green-500/60 text-white font-bold py-2 px-4 pb-2 rounded-lg"
+                    >
+                        Comprobar
+                    </button>
+                </div>
+
+                <!-- Existing Template Data -->
+                <div
+                    v-if="existing_template_data.length > 0"
+                    class="overflow-auto border dark:border-gray-600 rounded-lg p-4"
+                >
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th scope="col" class="px-6 py-3">Turno</th>
+                                <th
+                                    scope="col"
+                                    class="px-6 py-3"
+                                    v-for="(day_of_week, index) in formatted_data_indexes"
+                                    :key="index"
+                                >
+                                    {{ day_of_week }}
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
+                                v-for="(user_data, user_index) in existing_template_data"
+                                :key="user_index"
+                                class="bg-white border-b dark:bg-gray-800 dark:border-gray-500"
+                            >
+                                <td
+                                    class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l bg-gray-600 dark:border-gray-500 dark:text-white"
+                                >
+                                    {{ 'Usuario' }}
+                                </td>
+                                <td
+                                    v-for="(day, day_index) in user_data"
+                                    :key="day_index"
+                                    class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l dark:border-gray-500 dark:text-white"
+                                    :class="[(day.start_time === '00:00' && day.end_time === '00:00' && day.is_free_day) ? 'free_day' : day.is_free_day ? 'free_day' : '']"
+                                >
+                                    {{
+                                        day.start_time === '00:00' && day.end_time === '00:00' && day.is_free_day
+                                            ? 'LIBRE'
+                                            : day.is_free_day
+                                            ? 'LIBRE'
+                                            : formatTimeString(day.start_time) + ' - ' + formatTimeString(day.end_time)
+                                    }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <button
+                        class="w-full lg:w-auto text-white text-lg rounded-lg bg-red-500 hover:bg-red-500/80 p-1 my-2"
+                    >
+                        ELIMINAR
+                    </button>
+                </div>
+
+                <!-- Existing Template Error -->
+                <div
+                    v-if="existing_template_error.status"
+                    class="flex flex-col items-center space-y-3"
+                >
+                    <p class="text-red-400">{{ existing_template_error.message }}</p>
+                    <button
+                        class="w-full lg:w-auto text-white text-lg rounded-lg bg-green-500/80 hover:bg-green-500/70 p-1"
+                    >
+                        AÑADIR
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
-    <div
-      class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow 
-             peer-checked:translate-x-5 transition-transform"></div>
-  </label>
-
-  <!-- Label -->
-  <span class="ml-3 text-md font-medium text-white">Enable notifications</span>
 </div>
-<!--                             <div class="flex justify-center items-center space-x-5 items_spacing_y">
-                                <button class="w-[42vw] sm:w-[45vw] h-24 bg-gray-700 rounded-md" :class="[is_schedules_open ? 'bg-green-600 hover:bg-green-500/80' : 'bg-gray-700']" @click="is_schedules_open = !is_schedules_open, is_modal_open = false"> SCHEDULES </button>
-                                <button class="w-[42vw] sm:w-[45vw] h-24 bg-gray-700 rounded-md" :class="[is_modal_open ? 'bg-green-600 hover:bg-green-500/80' : 'bg-gray-700']" @click="is_modal_open = !is_modal_open, is_schedules_open = false"> ADD SCHEDULES </button>
-                            </div> -->
-                        </div>
-                    </div>
-                </div>
-            </div>
 
 
-        <template v-if="is_modal_open">
-            <div class="pt-6">
-                <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                        <div class="p-4 flex justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
-                            <p>Is modal open!?</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </template>
-    <template v-if="is_schedules_open">
-        <div class="py-6">
+    <!-- <template> -->
+        <div class="pb-6 pt-3" :class="[admin_toggled ? 'pt-6 pb-6' : '']">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-4 flex justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
@@ -814,7 +942,7 @@ onMounted(async () => {
             </div>
         </div>
     </div>
-</template>
+<!-- </template> -->
 </AuthenticatedLayout>
 </template>
 
@@ -877,6 +1005,10 @@ onMounted(async () => {
 
 .disabled{
     color: #928f70 !important;
+}
+
+.admin_toggled {
+    background-color: #30353d !important;
 }
 
 @media (max-width: 975px) {
