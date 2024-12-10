@@ -83,7 +83,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/schedule/saveweeklyschedule', [WeeklyScheduleController::class, 'saveWeeklySchedule'])
         ->name('saveSchedule');
 
-    Route::post('/schedule/weekly/{week_number}/{department_id}', [ScheduleController::class, 'weeklySchedule'])
+    Route::post('/schedule/weekly/{week_number}/{department_id}/{year}', [ScheduleController::class, 'weeklySchedule'])
         ->name('WeeklySchedule');
 
     /* ---VACATION MANAGER ROUTES--- */

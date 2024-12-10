@@ -369,9 +369,11 @@ class ScheduleController extends Controller
             }
         }
 
-        for ($i = 0; $i < $rotation_index; $i++) {
-            $element_to_move = array_pop($users_array); // Take the last element
-            array_splice($users_array, 1, 0, [$element_to_move]); // Move it to the 1st index
+        if($rotation_index > 0) {
+            for ($i = 0; $i < $rotation_index; $i++) {
+                $element_to_move = array_pop($users_array); // Take the last element
+                array_splice($users_array, 1, 0, [$element_to_move]); // Move it to the 1st index
+            }
         }
 
         // After weekly schedule mapping, increase rotation_index by 1
@@ -451,9 +453,11 @@ class ScheduleController extends Controller
 
                     $schedules_array = $schedules->toArray();
                     
-                    for ($i = 0; $i < $rotation_index; $i++) {
-                        $element_to_move = array_pop($schedules_array); // Take the last element
-                        array_splice($schedules_array, 1, 0, [$element_to_move]); // Move it to the 1st index
+                    if($rotation_index > 0) {
+                        for ($i = 0; $i < $rotation_index; $i++) {
+                            $element_to_move = array_pop($schedules_array); // Take the last element
+                            array_splice($schedules_array, 1, 0, [$element_to_move]); // Move it to the 1st index
+                        }
                     }
 
                     foreach($data['users'] as $index => $user_in_array) {
@@ -708,6 +712,6 @@ class ScheduleController extends Controller
     }
 
     public function removeUserAvailability($id) {
-        
+
     }
 }

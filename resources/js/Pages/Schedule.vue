@@ -12,7 +12,6 @@ const props = defineProps({
     departments: Array,
 });
 
-const is_schedules_open = ref(false);
 const weekly_schedules_for_month = reactive([]);
 const weekly_schedule = reactive([]);
 const existing_template_data = reactive([]);
@@ -25,6 +24,7 @@ const week_date_range_dates = reactive([]);
 const week_numbers_by_month = reactive([]);
 const week_dates_by_month = reactive([]);
 const selected_department_id = ref(null);
+const selected_department_id_admin = ref(null);
 const selected_month = ref(null);
 const selected_user_id = ref('');
 const months = reactive([]);
@@ -77,7 +77,7 @@ const getWeeklySchedule = async (week_numb_param, dep_id_param) => {
     if(week_numb_param !== undefined){
         console.log("ENTRAAAAAAA")
         console.log(selected_week)
-        await axios.post('/schedule/weekly/' + week_numb_param + '/' + dep_id_param).then((response) => {
+        await axios.post('/schedule/weekly/' + week_numb_param + '/' + dep_id_param + '/' + year).then((response) => {
             weekly_schedule.length = 0;
             weekly_schedule.push(response.data.weekly_schedule);
             console.log(weekly_schedule);
@@ -462,154 +462,85 @@ onMounted(async () => {
         </template>
 
         <div class="pt-3" :class="[admin_toggled ? 'pt-3' : '']">
-    <div class="max-w-7xl mx-auto sm:mx-[10px] sm:px-4 lg:px-6">
-        <div
-            class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg p-4 lg:p-6"
-            :class="[(admin_toggled) ? 'admin_toggled' : '']"
-        >
-            <!-- Toggle Switch -->
-            <div class="flex justify-end items-center space-x-5 text-gray-900 dark:text-gray-100">
-                <div class="flex items-center">
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input
-                            type="checkbox"
-                            class="sr-only peer"
-                            :checked="admin_toggled"
-                            @change="admin_toggled = !admin_toggled"
-                        />
-                        <div
-                            class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-500 peer-focus:ring-1 peer-focus:ring-blue-100 transition-all"
-                        ></div>
-                        <div
-                            class="absolute text-gray-700 bg-white left-1 top-1 w-4 h-4 rounded-full shadow peer-checked:translate-x-5 transition-transform peer-checked:text-green-500 peer-checked:left-1.5"
-                        >
-                            <i class="fa-solid fa-wrench text-xs absolute top-0.4 left-0.5"></i>
-                        </div>
-                    </label>
-                </div>
-            </div>
-
-            <!-- Admin Toggled Content -->
-            <div
-                v-if="admin_toggled"
-                class="grid gap-5 lg:gap-2 lg:grid-cols-1 xl:grid-cols-5 text-gray-900 dark:text-gray-100"
-            >
-                <!-- Schedules Form -->
-                <div class="space-y-4 sm:flex sm:justify-around">
-                    <div class="flex flex-col lg:flex-row lg:items-center space-y-4 lg:space-y-0 lg:space-x-4">
-                        <!-- Department Selection -->
-                        <div class="flex flex-col lg:flex-row items-start lg:items-center w-full">
-                            <h4 class="mb-2 lg:mb-0 lg:mr-3">Departamento:</h4>
-                            <select
-                                id="departments"
-                                v-model="selected_department_id"
-                                @change="fetchDepartmentNameById(selected_department_id)"
-                                class="w-full lg:w-auto bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                            >
-                                <option selected disabled value="">Selecciona un departamento</option>
-                                <option
-                                    v-for="department in departments"
-                                    :key="department.id"
-                                    :value="department.id"
-                                >
-                                    {{ capitalize(department.name) }}
-                                </option>
-                            </select>
-                        </div>
-
-                        <!-- Number of Employees -->
-                        <div class="flex flex-col lg:flex-row items-start lg:items-center w-full">
-                            <h4 class="mb-2 lg:mb-0 lg:mr-3">Número de empleados:</h4>
-                            <input
-                                type="number"
-                                v-model="users_available"
-                                class="w-full lg:w-auto bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                                placeholder="mín 2"
-                                required
-                            />
+            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg" :class="[(admin_toggled) ? 'admin_toggled' : '',]">
+                    <div class="p-2 flex justify-end items-center space-x-5 text-gray-900 dark:text-gray-100">
+                        <div class="flex items-center">
+                        <!-- Toggle Switch -->
+                        <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer" :checked="admin_toggled" @change="admin_toggled = !admin_toggled">
+                                <div
+                                class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-500 
+                                        peer-focus:ring-1 peer-focus:ring-blue-100 transition-all">
+                                </div>
+                                <div
+                                class="absolute text-gray-700 bg-white left-1 top-1 w-4 h-4 rounded-full shadow 
+                                        peer-checked:translate-x-5 transition-transform peer-checked:text-green-500 peer-checked:left-1.5">
+                                        <i class="fa-solid fa-wrench text-xs absolute top-0.6 left-0.5"></i>
+                                    </div>
+                            </label>
                         </div>
                     </div>
+                    <div v-if="admin_toggled" class="p-2 grid justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
+                        <div class="sm:flex sm:justify-between items-center grid pr-9">
+                            <!-- SCHEDULES FORM -->
+                            <div class="sm:flex sm:justify-center sm:ml-5 grid items-center space-x-5 items_spacing_y"><!-- Dep -->
+                                <h4 class="flex ml-5">Departamento:</h4>
+                                <select id="departments" v-model="selected_department_id"
+                                    @change="fetchDepartmentNameById(selected_department_id);"
+                                    class="min-w-24 flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                    <option selected disabled value="">Selecciona un departamento</option>
+                                    <option v-for="department in departments" :key="department.id"
+                                        :value="department.id">
+                                        {{ capitalize(department.name) }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="sm:flex sm:justify-center grid items-center space-x-5 items_spacing_y "><!-- Dep -->
+                                <h4 class="flex ml-5">Número de empleados:</h4>
+                                <input type="number" v-model="users_available" class="min-w-24 flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="mín 2" required />
+                            </div>
 
-                    <!-- Check Button -->
-                    <button
-                        @click="checkForScheduleTemplates(selected_department_id, users_available)"
-                        class="w-full lg:w-auto bg-green-600/70 hover:bg-green-500/60 text-white font-bold py-2 px-4 pb-2 rounded-lg"
-                    >
-                        Comprobar
-                    </button>
-                </div>
-
-                <!-- Existing Template Data -->
-                <div
-                    v-if="existing_template_data.length > 0"
-                    class="overflow-auto border dark:border-gray-600 rounded-lg p-4"
-                >
-                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                            <tr>
-                                <th scope="col" class="px-6 py-3">Turno</th>
-                                <th
-                                    scope="col"
-                                    class="px-6 py-3"
-                                    v-for="(day_of_week, index) in formatted_data_indexes"
-                                    :key="index"
-                                >
-                                    {{ day_of_week }}
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr
-                                v-for="(user_data, user_index) in existing_template_data"
-                                :key="user_index"
-                                class="bg-white border-b dark:bg-gray-800 dark:border-gray-500"
-                            >
-                                <td
-                                    class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l bg-gray-600 dark:border-gray-500 dark:text-white"
-                                >
-                                    {{ 'Usuario' }}
-                                </td>
-                                <td
-                                    v-for="(day, day_index) in user_data"
-                                    :key="day_index"
-                                    class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l dark:border-gray-500 dark:text-white"
-                                    :class="[(day.start_time === '00:00' && day.end_time === '00:00' && day.is_free_day) ? 'free_day' : day.is_free_day ? 'free_day' : '']"
-                                >
-                                    {{
-                                        day.start_time === '00:00' && day.end_time === '00:00' && day.is_free_day
-                                            ? 'LIBRE'
-                                            : day.is_free_day
-                                            ? 'LIBRE'
-                                            : formatTimeString(day.start_time) + ' - ' + formatTimeString(day.end_time)
-                                    }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <button
-                        class="w-full lg:w-auto text-white text-lg rounded-lg bg-red-500 hover:bg-red-500/80 p-1 my-2"
-                    >
-                        ELIMINAR
-                    </button>
-                </div>
-
-                <!-- Existing Template Error -->
-                <div
-                    v-if="existing_template_error.status"
-                    class="flex flex-col items-center space-y-3"
-                >
-                    <p class="text-red-400">{{ existing_template_error.message }}</p>
-                    <button
-                        class="w-full lg:w-auto text-white text-lg rounded-lg bg-green-500/80 hover:bg-green-500/70 p-1"
-                    >
-                        AÑADIR
-                    </button>
+                            <div class="flex justify-center items-center space-x-5 items_spacing_y mx-5"><!-- Dep -->
+                                <button @click="checkForScheduleTemplates(selected_department_id, users_available)" class="flex items-center w-full justify-center ml-10 sm:ml-0 sm:mt-0 bg-green-600/70 hover:bg-green-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg"> Comprobar</button>
+                            </div>
+                        </div>
+                        <div v-if="existing_template_data.length > 0" class="overflow-auto p-4 justify-center items-center">
+                            <table class="w-full text-sm text-left rtl:text-right border dark:border-gray-600 text-gray-500 dark:text-gray-400">
+                                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3">Turno</th>
+                                        <th scope="col" class="px-6 py-3"
+                                        v-for="(day_of_week, index) in formatted_data_indexes" :key="index"> {{ day_of_week }}
+                                    </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="(user_data, user_index) in existing_template_data" :key="user_index" class=" bg-white border-b dark:bg-gray-800 dark:border-gray-500">
+                                        <td class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l bg-gray-600 dark:border-gray-500 dark:text-white">
+                                            {{ 'Usuario' }}
+                                        </td>
+                                        <td v-for="(day, day_index) in user_data" :key="day_index" class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l dark:border-gray-500 dark:text-white"
+                                        :class="[(day.start_time === '00:00' && day.end_time === '00:00' && (day.is_free_day)) ? 'free_day' : day.is_free_day ? 'free_day' : '']">
+                                            {{ day.start_time === '00:00' && day.end_time === '00:00' && day.is_free_day ? 'LIBRE' : 
+                                            day.is_free_day ? 'LIBRE' :
+                                            formatTimeString(day.start_time) + ' - ' + formatTimeString(day.end_time) }}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <button class="text-white text-lg rounded-lg bg-red-500 hover:bg-red-500/80 p-1 my-2"> ELIMINAR PLANTILLA </button>
+                        </div>
+                        <div v-if="existing_template_error.status" class="flex justify-center py-2 items-center w-full">
+                            <div class="grid">
+                                <p class="text-red-400"> {{ existing_template_error.message }}</p>
+                                <button class="text-white text-lg rounded-lg bg-green-500/80 hover:bg-green-500/70 p-1 my-2"> AÑADIR PLANTILLA </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</div>
-
 
     <!-- <template> -->
         <div class="pb-6 pt-3" :class="[admin_toggled ? 'pt-6 pb-6' : '']">
@@ -633,7 +564,7 @@ onMounted(async () => {
                             </form>
                         </div>
                         <div class="flex justify-center items-center space-x-5 items_spacing_y">
-                            <h4 class="flex items-center">Mes:</h4>
+                            <h4 class="flex items-">Mes:</h4>
                             <form class="flex max-w-sm mx-auto items-center">
                                 <label for="month"></label>
                                 <select
@@ -655,7 +586,7 @@ onMounted(async () => {
                                 <select
                                     class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                                     :disabled="!selected_month" v-model="selected_week"
-                                    @change="getWeeklySchedule(selected_week.weekNumber, selected_department_id); fetchWeekDates(getSelectedYear(selected_month), selected_week.weekNumber);">
+                                    @change="getWeeklySchedule(selected_week.weekNumber, selected_department_id, getSelectedYear(selected_month)); fetchWeekDates(getSelectedYear(selected_month), selected_week.weekNumber);">
                                     <option value="all" :disabled="!selected_week" selected>Todas las semanas del mes</option>
                                     <!-- Placeholder option -->
                                     <option v-for="week in week_dates_by_month" :key="week" :value="week">
@@ -820,12 +751,12 @@ onMounted(async () => {
                 <!-- START SINGLE TABLE -->
                 <template v-if="weekly_schedule.length > 0 && selected_week !== 'all'">
                     <div v-if="selected_week" class="pb-14 flex items-center justify-center text-gray-900 dark:text-gray-100">
-                        <div v-if="weekly_schedule[0].schedule_data.length > 0" class="relative overflow-x-auto mt-5">
-                                <h4 v-if="weekly_schedule[0].schedule_data.length > 0 && selected_week.weekNumber" class="header m-2"> Semana: <span class="bold text-violet-400"> {{ selected_week?.weekNumber }} </span> | <span class="bold text-green-200"> {{ selected_week?.startDate }} </span> a <span class="bold text-green-200"> {{ selected_week?.endDate }} </span> | 
+                        <div v-if="weekly_schedule.length > 0" class="relative overflow-x-auto mt-5">
+                                <h4 v-if="weekly_schedule.length > 0 && selected_week.weekNumber" class="header m-2"> Semana: <span class="bold text-violet-400"> {{ selected_week?.weekNumber }} </span> | <span class="bold text-green-200"> {{ selected_week?.startDate }} </span> a <span class="bold text-green-200"> {{ selected_week?.endDate }} </span> | 
                                     <button @click="getWeeklySchedule(selected_week.weekNumber, selected_department_id), closeEditing()" class="text-yellow-300"><i class="text-md text-yellow-300 fa-solid fa-rotate"></i> Recargar tabla</button> |
                                     <button @click="saveChanges(selected_week.weekNumber, selected_department_id, weekly_schedule[0]), closeEditing()" class="text-green-400"><i class="text- text-green-400 fa-solid fa-floppy-disk"></i> Grabar imagen</button>
                                 </h4>
-                                <table v-if="weekly_schedule[0].schedule_data.length > 0" class="w-full text-sm text-left rtl:text-right border dark:border-gray-600 text-gray-500 dark:text-gray-400">
+                                <table v-if="weekly_schedule.length > 0" class="w-full text-sm text-left rtl:text-right border dark:border-gray-600 text-gray-500 dark:text-gray-400">
                                     <thead
                                     class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                                         <tr>

@@ -52,18 +52,17 @@ class WeeklyScheduleController extends Controller
         $request = request(); // Retrieve the current request
 
         // If no parameters are passed, use the request data
-        if ($request->has(['department_id', 'year', 'week_number', 'schedule_data', 'rotation'])) {
+        if ($request->has(['department_id', 'week_number', 'schedule_data', 'rotation'])) {
             //dd($request);
             $data = $request->validate([
                 'department_id' => 'required|integer',
-                'year' => 'required|integer',
                 'week_number' => 'required|integer',
                 'schedule_data' => 'required|array',
                 'rotation' => 'required|integer',
             ]);
             $week_number = $data["week_number"];
             $department_id = $data["department_id"];
-            $year = $data["year"];
+            $year = $data["schedule_data"]["year"];
             $schedule_data = $data["schedule_data"]["schedule_data"];
             $rotation = $data["schedule_data"]["rotation"];
         }
