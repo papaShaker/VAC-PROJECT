@@ -707,11 +707,17 @@ class ScheduleController extends Controller
         return $schedules;
     }
 
-    public function removeSchedules($user_availability_id) {
-
-    }
-
-    public function removeUserAvailability($id) {
-
+    public function removeSchedules($department_id, $users_available) {
+        $schedule_template = UserAvailability::where('department_id', $department_id)
+        ->where('users_available', $users_available)
+        ->first();
+        if ($schedule_template) {
+            Schedule::where('user_availability_id', $schedule_template->id)->delete();
+            $schedule_template->delete();
+            return ['status' => 'Success', 'message' => 'Plantilla eliminada con éxito.'];
+        }
+        else {
+            return ['status' => 'Error', 'message' => 'Ha surgido un error.'];
+        }
     }
 }

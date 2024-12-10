@@ -144,6 +144,12 @@ const checkForScheduleTemplates = async (department_id, users_available) => {
     });
 }
 
+const removeScheduleTemplate = async (department_id, users_available) => {
+    await axios.delete('/schedules_template_delete/' + department_id + '/' + users_available).then((response) => {
+        console.log(response.data.status);
+    })
+}
+
 const loadLastBurnedImage = () => {
     console.log('Loading last burned image:', last_weekly_schedule_image);
     weekly_schedules_for_month.splice(0, weekly_schedules_for_month.length, ...last_weekly_schedule_image); 
@@ -486,8 +492,8 @@ onMounted(async () => {
                             <!-- SCHEDULES FORM -->
                             <div class="sm:flex sm:justify-center sm:ml-5 grid items-center space-x-5 items_spacing_y"><!-- Dep -->
                                 <h4 class="flex ml-5">Departamento:</h4>
-                                <select id="departments" v-model="selected_department_id"
-                                    @change="fetchDepartmentNameById(selected_department_id);"
+                                <select id="departments" v-model="selected_department_id_admin"
+                                    @change="fetchDepartmentNameById(selected_department_id_admin);"
                                     class="min-w-24 flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
                                     <option selected disabled value="">Selecciona un departamento</option>
                                     <option v-for="department in departments" :key="department.id"
@@ -502,7 +508,7 @@ onMounted(async () => {
                             </div>
 
                             <div class="flex justify-center items-center space-x-5 items_spacing_y mx-5"><!-- Dep -->
-                                <button @click="checkForScheduleTemplates(selected_department_id, users_available)" class="flex items-center w-full justify-center ml-10 sm:ml-0 sm:mt-0 bg-green-600/70 hover:bg-green-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg"> Comprobar</button>
+                                <button @click="checkForScheduleTemplates(selected_department_id_admin, users_available)" class="flex items-center w-full justify-center ml-10 sm:ml-0 sm:mt-0 bg-green-600/70 hover:bg-green-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg"> Comprobar</button>
                             </div>
                         </div>
                         <div v-if="existing_template_data.length > 0" class="overflow-auto p-4 justify-center items-center">
@@ -529,7 +535,7 @@ onMounted(async () => {
                                     </tr>
                                 </tbody>
                             </table>
-                            <button class="text-white text-lg rounded-lg bg-red-500 hover:bg-red-500/80 p-1 my-2"> ELIMINAR PLANTILLA </button>
+                            <button @click="removeScheduleTemplate(selected_department_id_admin, users_available), checkForScheduleTemplates(selected_department_id_admin, users_available);" class="text-white text-lg rounded-lg bg-red-500 hover:bg-red-500/80 p-1 my-2"> ELIMINAR PLANTILLA </button>
                         </div>
                         <div v-if="existing_template_error.status" class="flex justify-center py-2 items-center w-full">
                             <div class="grid">
