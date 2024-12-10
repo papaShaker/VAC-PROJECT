@@ -48,18 +48,12 @@ const edit_state = reactive({
     table: null,
     row: null,
 })
-
+const showAddScheduleButton = ref(false);
 
 const modal_schedules = reactive({
     department_id: selected_department_id,
     user_availability: '',
     form: [],
-});
-
-const form = useForm({
-    department_id: null,
-    users_available: null,
-    schedules: []
 });
 
 const toast_options = {
@@ -72,6 +66,33 @@ const toast_options = {
         border: '1px solid #9CA3AF'
     }
 }
+
+const form = useForm({
+    department_id: null,
+    users_available: null,
+    users_schedules: []
+});
+
+const days_of_week = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Série', 'Domingo'];
+
+const initializeForm = () => {
+    form.users_schedules = Array.from({ length: form.users_available }, (_, index) => ({
+        user_group: index,
+        schedules: days_of_week.map((_, index) => ({
+            day_of_week: index + 1,
+            start_time: '',
+            end_time: '',
+            user_availability_id: '',
+            is_free_day: '',
+        })),
+    }));
+};
+
+const addScheduleTemplate = async () => {
+    await axios.post('/schedule/savescheduletemplate', { form: form}).then((response) => {
+        console.log(response.data);
+    })
+};
 
 const getWeeklySchedule = async (week_numb_param, dep_id_param) => {
     if(week_numb_param !== undefined){
@@ -162,25 +183,6 @@ const saveLastBurnedImage = () => {
     console.log('Saved last burned image:', last_weekly_schedule_image);
 };
 
-
-const initializeForm = () => {
-    form.schedules = Array.from({ length: form.users_available }, (_, index) => ({
-        user_group: index,
-        schedules: days_of_week.map((_, index) => ({
-            day_of_week: index + 1,
-            start_time: '',
-            end_time: '',
-            user_availability_id: '',
-            is_free_day: '',
-        })),
-    }));
-};
-
-const addSchedules = () => {
-    form.schedules.post('', {}).then((response) => {
-        
-    })
-};
 
 /* const getWeekNumber = (date) => {
     let first_jan = new Date(date.getFullYear(), 0, 1);
@@ -445,6 +447,12 @@ const change_selected_week_to_all = () => {
     selected_week.value = 'all';
 }
 
+const checkShowAddScheduleButton = () => {
+    if (existing_template_error.status === "Error") {
+        showAddScheduleButton.value = true;
+    }
+}
+
 onBeforeMount(async () => {
     getWeekDateRange(today);
     admin_toggled.value = false;
@@ -504,11 +512,11 @@ onMounted(async () => {
                             </div>
                             <div class="sm:flex sm:justify-center grid items-center space-x-5 items_spacing_y "><!-- Dep -->
                                 <h4 class="flex ml-5">Número de empleados:</h4>
-                                <input type="number" v-model="users_available" class="min-w-24 flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="mín 2" required />
+                                <input type="number" v-model="users_available" :disabled="!selected_department_id_admin" @change="form.reset()" class="sm:max-w-[145px] min-w-14 flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" min="1" placeholder="mín 1" required />
                             </div>
 
                             <div class="flex justify-center items-center space-x-5 items_spacing_y mx-5"><!-- Dep -->
-                                <button @click="checkForScheduleTemplates(selected_department_id_admin, users_available)" class="flex items-center w-full justify-center ml-10 sm:ml-0 sm:mt-0 bg-green-600/70 hover:bg-green-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg"> Comprobar</button>
+                                <button @click="checkForScheduleTemplates(selected_department_id_admin, users_available)" class="flex items-center w-full justify-center ml-10 sm:ml-0 sm:mt-0 bg-green-600/70 hover:bg-green-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg" :disabled="!selected_department_id_admin || !users_available"> Comprobar</button>
                             </div>
                         </div>
                         <div v-if="existing_template_data.length > 0" class="overflow-auto p-4 justify-center items-center">
@@ -540,8 +548,40 @@ onMounted(async () => {
                         <div v-if="existing_template_error.status" class="flex justify-center py-2 items-center w-full">
                             <div class="grid">
                                 <p class="text-red-400"> {{ existing_template_error.message }}</p>
-                                <button class="text-white text-lg rounded-lg bg-green-500/80 hover:bg-green-500/70 p-1 my-2"> AÑADIR PLANTILLA </button>
+                                <button @click="form.department_id = selected_department_id_admin, form.users_available = users_available, initializeForm();" class="text-white text-lg rounded-lg bg-green-500/80 hover:bg-green-500/70 p-1 my-2"> AÑADIR PLANTILLA </button>
                             </div>
+                        </div>
+                        <div v-if="form.users_schedules.length > 0" class="overflow-auto px-12">
+                            <div class="space-y-2">
+                                <button @click="addScheduleTemplate()" class="flex items-center w-full justify-center ml-10 sm:ml-0 sm:mt-0 bg-green-600/70 hover:bg-green-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg">
+                                    GUARDAR
+                                </button>
+                                <button @click="form.reset()" class="flex items-center w-full justify-center ml-10 sm:ml-0 sm:mt-0 bg-red-600/70 hover:bg-red-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg">
+                                    CANCELAR
+                                </button>
+                            </div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3">Turno</th>
+                                        <th scope="col" class="px-6 py-3"
+                                        v-for="(day_of_week, index) in formatted_data_indexes" :key="index"> {{ day_of_week }}
+                                    </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="(user, userIndex) in form.users_schedules" :key="userIndex">
+                                        <td> {{ 'Usuario: ' + (userIndex + 1) }} </td>
+                                        <td v-for="(day, dayIndex) in user.schedules" :key="dayIndex" :class="[day.is_free_day ? 'bg-green-500/30 rounded-lg' : '']">
+                                            <div class="flex flex-wrap justify-center py-1">
+                                                <input type="time" v-model="day.start_time" step="1" class="bg-gray-50 border leading-none border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" min="00:00" max="00:00" value="00:00" required />
+                                                <input type="time" v-model="day.end_time" step="1" class="bg-gray-50 border leading-none border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" min="00:00" max="00:00" value="00:00" required />
+                                                <label>Día libre: <input type="checkbox" v-model="day.is_free_day" class="mr-1 w-3.5 h-3.5 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-green-500 dark:border-gray-600"/></label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>

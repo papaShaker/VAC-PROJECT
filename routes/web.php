@@ -87,7 +87,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('WeeklySchedule');
 
     Route::delete('/schedules_template_delete/{department_id}/{users_available}', [ScheduleController::class, 'removeSchedules'])
-    ->name('removeScheduleTemplate');
+        ->name('removeScheduleTemplate');
+
+    Route::post('/schedule/savescheduletemplate', [ScheduleController::class, 'addScheduleTemplate'])
+        ->name('addScheduleTemplate');
 
     /* ---VACATION MANAGER ROUTES--- */
     // This route renders the 'Vacations' view

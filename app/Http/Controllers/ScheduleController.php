@@ -720,4 +720,52 @@ class ScheduleController extends Controller
             return ['status' => 'Error', 'message' => 'Ha surgido un error.'];
         }
     }
+
+    public function addScheduleTemplate(Request $request) {
+
+        $request = request();
+
+        $data = $request->validate([
+            'department_id' => 'required|exists:departments,id',
+            'users_schedules' => 'required|array',
+            'users_schedules.*.user_group' => 'required|integer',
+            'users_schedules.*.days' => 'required|array',
+            'users_schedules.*.days.*.day_of_week' => 'required|string',
+            'users_schedules.*.days.*.start_time' => 'required|date_format:H:i:s',
+            'users_schedules.*.days.*.end_time' => 'required|date_format:H:i:s',
+            'users_schedules.*.days.*.is_freeday' => 'required|boolean',
+        ]);
+
+        $department_id = $data["department_id"];
+        $users_available = $data["users_available"];
+        $users_schedule = $data["users_schedules"];
+
+        if (is_null($department_id) || is_null($users_available) || is_null($users_schedule)) { // + is_null(rotation)
+
+            return response()->json(['status' => 'Error', 'message' => 'Faltan parámetros.'], 400);
+        }
+
+        $user_availability = new UserAvailability();
+        $user_availability->department_id = $department_id;
+        $user_availability->users_available = $users_available;
+        $user_availability->save();
+        
+        $user_availability_id = $user_availability->id;
+
+        foreach ($users_schedule as $user_index => $user) {
+            foreach ($user['schedules'] as $day){
+                $schedule = new Schedule();
+                $schedule->day_of_week = $day->day_of_week;
+                $schedule->start_time = $day->start_time;
+                $schedule->end_time = $day->end_time;
+                $schedule->is_free_day = $day->is_free_day;
+                $schedule->user_availability_id = $user_availability_id;
+                $schedule->user_group = $user_index;
+                $schedule->save();
+            }
+        }
+        
+        return ['status' => 'Success', 'message' => 'Plantilla creada con éxito.'];
+    
+    }
 }
