@@ -69,7 +69,7 @@ class WeeklyScheduleController extends Controller
         // Validate input data if passed directly (when $request is null)
         if (is_null($department_id) || is_null($week_number) || is_null($schedule_data) || is_null($year)) { // + is_null(rotation)
 
-            return response()->json(['status' => 'Error', 'message' => 'Missing parameters.'], 400);
+            return response()->json(['status' => 'Error', 'message' => 'Faltan parámetros.'], 400);
         }
 
 

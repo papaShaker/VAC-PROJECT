@@ -9,6 +9,7 @@ const props = defineProps({
     departments: Array,
 });
 
+const jobRanges = ref([]);
 const calendar_data = reactive({});
 const expand = ref(null);
 const users = ref([]);
@@ -29,6 +30,13 @@ const week_days = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const holidays_data = reactive([]);
 const selected_month_check = ref(false);
 
+const fetchJobRanges = () => {
+    axios.get(`/api/allJobRanges`).then((response) => {
+        jobRanges.value = response.data;
+    }).catch(error => {
+        console.error('Error', error);
+    })
+};
 
 const fetchUsers = (department_id) => {
     axios.get(`/departments/${department_id}/users`).then((response) => {
@@ -375,6 +383,12 @@ onBeforeMount( async () => {
 
                 </div>
             </div>
+            <div><button @click="fetchUsers(selected_department_id)">
+                        <p class="text-green-200">Send to check users.</p>
+                    </button></div>
+            <div><button @click="fetchJobRanges">
+                <p class="text-green-200">Send to get All Job Ranges.</p>
+            </button></div>
         </div>
     </AuthenticatedLayout>
 </template>

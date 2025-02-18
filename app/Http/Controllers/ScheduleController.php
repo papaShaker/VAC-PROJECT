@@ -30,6 +30,13 @@ class ScheduleController extends Controller
         return response()->json($weeklySchedules);
     }
 
+    /**
+     * Returns a list of departments to the client.
+     *
+     * Only the "id" and "name" columns are retrieved from the Department model.
+     *
+     * @return \Inertia\Response
+     */
     public function getDepartments()
     {
         // Retrieve only ID and NAME from Department
@@ -311,6 +318,7 @@ class ScheduleController extends Controller
 
             $day_of_week++;
         }
+
         return $this->getWeeklySchedule($available_users_by_day, $users, $department_id, $rotation_index);
     }
 
@@ -336,6 +344,18 @@ class ScheduleController extends Controller
         return false; // No non-working day found in this hierarchy
     }
     
+    /**
+     * Get the weekly schedule of a given department
+     * 
+     * @param array $available_users_by_day
+     * @param Collection $users
+     * @param string $department_id
+     * @param int|null $rotation_index
+     * @param array|null $passed_schedules
+     * 
+     * @return array
+     */
+    
     private function getWeeklySchedule($available_users_by_day, $users, $department_id, $rotation_index = null, $passed_schedules = null) {
         $set_week = [];
         $programmed_users = [];
@@ -354,7 +374,7 @@ class ScheduleController extends Controller
 
         $users_array = $users->toArray();
 
-        $exists = $users->contains(fn($user) => $user['USU_codi'] === 9); //CHECKS IF FIXED USER IS IN ARRAY
+        $exists = $users->contains(fn($user) => $user['id'] === 9); //CHECKS IF FIXED USER IS IN ARRAY
 
         if($rotation_index >= $available_users_limit_index){
             $rotation_index = 0;
@@ -487,6 +507,7 @@ class ScheduleController extends Controller
         }
         $set_week['users'] = $programmed_users;
         $set_week['schedules'] = ($passed_schedules === null) ? $programmed_schedules : $passed_schedules;
+
         return ['set_week' => $set_week, 'rotation_index' => $next_rotation_index];
     }
 
@@ -504,6 +525,20 @@ class ScheduleController extends Controller
         list($hours, $minutes) = explode(':', $time);
         return $hours . ':' . $minutes;
     }
+
+/**
+ * Generates structured data for a given month, including weeks and days.
+ *
+ * This function generates data for each day of the month, categorizing them into weeks.
+ * Each day contains information such as day of the week, free day status, holiday details,
+ * and work on free days status. It also aggregates holiday information for each day.
+ *
+ * @param Carbon $today The date object representing a day within the target month.
+ * @param Collection $non_working_days A collection of non-working days within the month.
+ * @param Collection $user_holidays_collection A collection of user holidays to be considered.
+ * 
+ * @return object An object containing the month's name, previous month status, and detailed weeks data.
+ */
 
     private function generateMonthData($today, $non_working_days, $user_holidays_collection)
     {
@@ -576,6 +611,16 @@ class ScheduleController extends Controller
         ];
     }
 
+    /**
+     * Return an array of dates for a given week and year.
+     *
+     * The method uses Carbon's setISODate() method to set the date to the first day of the given week and year.
+     * It then loops through the week and adds each day to the array using the addDay() method.
+     * 
+     * @param int $year the year
+     * @param int $week_number the week number (1-52)
+     * @return array an array of dates for the given week and year
+     */
     public function getDatesForWeek($year, $week_number) {
         $dates = [];
         $date =  Carbon::now();
@@ -592,6 +637,18 @@ class ScheduleController extends Controller
     }
 
 
+    /**
+     * Get an array of week numbers and years for a given month.
+     *
+     * This method takes a year and month as input and returns an array of week numbers and years for the given month.
+     * The week numbers are calculated using Carbon's weekOfYear property.
+     * The year is incremented if the week number is 1 and the previous week number was 52.
+     * The method avoids duplicates by checking if the week number and year already exist in the array.
+     * 
+     * @param int $year the year
+     * @param int $month the month (1-12)
+     * @return array an array of week numbers and years for the given month
+     */
     public function getWeekNumbersForMonth($year, $month) {
         // Create a Carbon instance for the first day of the given month
         $start_of_month = Carbon::create($year, $month, 1);
@@ -617,12 +674,25 @@ class ScheduleController extends Controller
     
             // Add the week number and year to the array (avoid duplicates)
             if (!in_array(['week' => $week_number, 'year' => $current_year], $week_numbers)) {
-                $week_numbers[] = ['week' => $week_number, 'year' => $current_year];
+                $week_numbers[] = ['week' => $week_number, 'year' => (string) $current_year];
             }
         }
+
         return $week_numbers;
     }
     
+    /**
+     * Get a weekly schedule for a given department and week number.
+     * 
+     * This method takes a week number, department_id, and year as input and returns the corresponding weekly schedule.
+     * If the weekly schedule does not exist, it generates it by calling the getDailyAvailableUsers method and saves it to the database using the saveWeeklySchedule method.
+     * The method also handles the case where the week number is 1 and the previous week number was 52 by incrementing the year.
+     * 
+     * @param int $week_number the week number (1-52)
+     * @param int $department_id the department_id
+     * @param int $year the year
+     * @return array an array with the weekly schedule data
+     */
     public function weeklySchedule($week_number = null, $department_id = null, $year = null){
 
         $rotation_index = 0;
@@ -640,11 +710,10 @@ class ScheduleController extends Controller
             ->where('week_number', $week_number)
             ->first();
             
-            $previous_week = WeeklySchedule::where('department_id', $department_id)
+        $previous_week = WeeklySchedule::where('department_id', $department_id)
             ->where('year', $year)
             ->where('week_number', $previous_week_number)
             ->first();
-
         
         if($previous_week && $previous_week->rotation !== 0) {
             $rotation_index = $previous_week->rotation;
@@ -664,6 +733,19 @@ class ScheduleController extends Controller
         }
 
 
+        /**
+         * Get an array of weekly schedules for a given month.
+         *
+         * This method takes a department_id, year, and month as input and returns an array of weekly schedules for the given month.
+         * The week numbers are calculated using Carbon's weekOfYear property.
+         * The year is incremented if the week number is 1 and the previous week number was 52.
+         * The method avoids duplicates by checking if the week number and year already exist in the array.
+         * 
+         * @param int $department_id the department_id
+         * @param int $year the year
+         * @param int $month the month (1-12)
+         * @return array an array of weekly schedules for the given month
+         */
     public function getWeeklySchedulesForMonth ($department_id, $year, $month) {
         $weekly_schedules_for_month = [];
         $weeks = $this->getWeekNumbersForMonth($year, $month);
@@ -671,10 +753,20 @@ class ScheduleController extends Controller
             $weekly_schedule = $this->weeklySchedule($week['week'], $department_id, $week['year']); /* ROTATION INDEX/WEEK MUST BE INITIALIZED IN weeklySchedule FUNCTION */
             $weekly_schedules_for_month[] = $weekly_schedule;
         }
+
         return $weekly_schedules_for_month;
     }
 
 
+    /**
+     * Checks if a schedule template exists for the given department_id and users_available.
+     * If it does, it returns an array of schedules grouped by user_group and ordered by day_of_week.
+     * If it does not, it returns an error message.
+     *
+     * @param int $department_id the department_id
+     * @param int $users_available the number of users available
+     * @return array an array of schedules or an error message
+     */
     public function checkForScheduleTemplate($department_id, $users_available) {
         $schedule_template = UserAvailability::where('department_id', $department_id)
             ->where('users_available', $users_available)
@@ -707,6 +799,16 @@ class ScheduleController extends Controller
         return $schedules;
     }
 
+    /**
+     * Deletes a schedule template given a department_id and users_available.
+     * The method first checks if the schedule template exists and if it does, it deletes all schedules associated with it
+     * and then deletes the schedule template itself.
+     * If the schedule template does not exist, it returns an error message.
+     *
+     * @param int $department_id the department_id
+     * @param int $users_available the number of users available
+     * @return array an array with the status and message of the operation
+     */
     public function removeSchedules($department_id, $users_available) {
         $schedule_template = UserAvailability::where('department_id', $department_id)
         ->where('users_available', $users_available)
@@ -726,40 +828,47 @@ class ScheduleController extends Controller
         $request = request();
 
         $data = $request->validate([
-            'department_id' => 'required|exists:departments,id',
+            'department_id' => 'required|integer|exists:departments,id',
+            'users_available' => 'required|integer',
             'users_schedules' => 'required|array',
-            'users_schedules.*.user_group' => 'required|integer',
-            'users_schedules.*.days' => 'required|array',
-            'users_schedules.*.days.*.day_of_week' => 'required|string',
-            'users_schedules.*.days.*.start_time' => 'required|date_format:H:i:s',
-            'users_schedules.*.days.*.end_time' => 'required|date_format:H:i:s',
-            'users_schedules.*.days.*.is_freeday' => 'required|boolean',
+            'users_schedules.*[user_group]' => 'required|integer',
+            'users_schedules.*[days]' => 'required|array',
+            'users_schedules.*[days].*[day_of_week]' => 'required|string',
+            'users_schedules.*[days].*[start_time]' => 'required|date_format:H:i:s',
+            'users_schedules.*[days].*[end_time]' => 'required|date_format:H:i:s',
+            'users_schedules.*[days].*[is_freeday]' => 'required|boolean',
         ]);
 
         $department_id = $data["department_id"];
         $users_available = $data["users_available"];
         $users_schedule = $data["users_schedules"];
-
+        
         if (is_null($department_id) || is_null($users_available) || is_null($users_schedule)) { // + is_null(rotation)
-
+            
             return response()->json(['status' => 'Error', 'message' => 'Faltan parámetros.'], 400);
+        }
+        
+        foreach ($users_schedule as $schedules) {
+            foreach ($schedules['schedules'] as $schedule) {
+                if(is_null($schedule['start_time']) || is_null($schedule['end_time'])) { // + i
+                    return response()->json(['status' => 'Error', 'message' => 'Faltan parámetros de horario de entrada y horario de salida.'], 400);
+                }
+            }
         }
 
         $user_availability = new UserAvailability();
         $user_availability->department_id = $department_id;
         $user_availability->users_available = $users_available;
         $user_availability->save();
-        
-        $user_availability_id = $user_availability->id;
 
         foreach ($users_schedule as $user_index => $user) {
             foreach ($user['schedules'] as $day){
                 $schedule = new Schedule();
-                $schedule->day_of_week = $day->day_of_week;
-                $schedule->start_time = $day->start_time;
-                $schedule->end_time = $day->end_time;
-                $schedule->is_free_day = $day->is_free_day;
-                $schedule->user_availability_id = $user_availability_id;
+                $schedule->day_of_week = $day['day_of_week'];
+                $schedule->start_time = $day['start_time'];
+                $schedule->end_time = $day['end_time'];
+                $schedule->is_free_day = $day['is_free_day'] === true ? true : false;
+                $schedule->user_availability_id = $user_availability->id;
                 $schedule->user_group = $user_index;
                 $schedule->save();
             }

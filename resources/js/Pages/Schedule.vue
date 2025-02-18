@@ -89,12 +89,19 @@ const initializeForm = () => {
 };
 
 const addScheduleTemplate = async () => {
-    await axios.post('/schedule/savescheduletemplate', { form: form}).then((response) => {
-        console.log(response.data);
-    })
+    await axios.post('/schedule/savescheduletemplate', { department_id: form['department_id'],
+                                                        users_available: form['users_available'],
+                                                        users_schedules: form['users_schedules']
+    }).then((response) => {
+
+    }).catch((error) => {
+       if(error.response && error.response.status === 400){
+        toast.error(error.response.data.message, toast_options);
+       };
+    });
 };
 
-const getWeeklySchedule = async (week_numb_param, dep_id_param) => {
+const getWeeklySchedule = async (week_numb_param, dep_id_param, year) => {
     if(week_numb_param !== undefined){
         console.log("ENTRAAAAAAA")
         console.log(selected_week)
@@ -109,6 +116,14 @@ const getWeeklySchedule = async (week_numb_param, dep_id_param) => {
     }
 };
 
+/**
+ * @function getWeeklySchedulesForMonth
+ * @description Generates weekly schedules for the given month. If the weekly schedule already exists, it will not be overwritten.
+ * @param {number} department_id - The id of the department to generate the schedules for.
+ * @param {number} year - The year of the month to generate the schedules for.
+ * @param {number} month - The month of the year to generate the schedules for.
+ * @returns {Promise<void>}
+ */
 const getWeeklySchedulesForMonth = async (department_id, year, month) => {
     loading.value = true;
     weekly_schedules_for_month.length = 0;
@@ -138,7 +153,7 @@ const getWeeklySchedulesForMonth = async (department_id, year, month) => {
             }
         }
         saveLastBurnedImage();
-        console.log(weekly_schedules_for_month);
+        //console.log(weekly_schedules_for_month);
     } catch (error) {
         toast.error(`Ha habido un error.`, toast_options);
         console.log(error);
@@ -156,7 +171,7 @@ const checkForScheduleTemplates = async (department_id, users_available) => {
         console.log(response.data);
         if(response.data.status === "Error"){
             Object.assign(existing_template_error, response.data);
-            console.log(existing_template_error);
+            showAddScheduleButton.value = true;
         }
         else {
         existing_template_data.push(...response.data);
@@ -167,7 +182,7 @@ const checkForScheduleTemplates = async (department_id, users_available) => {
 
 const removeScheduleTemplate = async (department_id, users_available) => {
     await axios.delete('/schedules_template_delete/' + department_id + '/' + users_available).then((response) => {
-        console.log(response.data.status);
+        console.log(response.data);
     })
 }
 
@@ -227,6 +242,7 @@ const fetchWeekDates = async (year, week_number) => { //Dates for the table thea
             week_date_range_dates.length = 0; // Clear the existing data (optional)
             week_date_range_dates.push(...response.data); // Add new data to the reactive array
             loading.value = false;
+            console.log("fetchWeekDates -> " + response.data);
         })
 }
 
@@ -273,7 +289,7 @@ const fetchWeekNumbersByMonth = async (year, month) => {
         .then((response) => {
             week_numbers_by_month.length = 0; // Clear the existing data (optional)
             week_numbers_by_month.push(...response.data); // Add new data to the reactive array
-            console.log("entra");
+            console.log("entra getWeekNumbersForMonth");
             console.log(week_numbers_by_month);
         })
 }
@@ -350,7 +366,7 @@ function formatTimeString(timeString) { // Split the time string by `:` and take
 }
 
 const startEditing = (row_index, table_index) =>  {
-    console.log("table Index: " + table_index);
+    console.log("StartEditing --> Table index: " + table_index);
     is_editing.value = true;
     edit_state.row = row_index;
     edit_state.table = table_index;
@@ -367,10 +383,12 @@ const saveChanges = async (week_number, department_id, schedule_data) => {
     let data;
     if (schedule_data && schedule_data.weekly_schedule && schedule_data.weekly_schedule.schedule_data) {
         data = schedule_data.weekly_schedule.schedule_data; // Access schedule_data if available
-        console.log("entrarara");
+        console.log("saveChanges (saveWeeklySchedule) --> Access schedule_data if available" + data);
+        console.log(data);
     } else {
         data = schedule_data; // Fall back to the original schedule_data
-        console.log("entrorororo");
+        console.log("saveChanges (saveWeeklySchedule) --> Fall back to the original schedule_data" + data);
+        console.log(data);
     }
     let toRaw_data = toRaw(data);
     await axios.post('/schedule/saveweeklyschedule', {
@@ -495,14 +513,14 @@ onMounted(async () => {
                             </label>
                         </div>
                     </div>
-                    <div v-if="admin_toggled" class="p-2 grid justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
+                    <div v-if="admin_toggled" class="p-2 pb-8 grid justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
                         <div class="sm:flex sm:justify-between items-center grid pr-9">
                             <!-- SCHEDULES FORM -->
-                            <div class="sm:flex sm:justify-center sm:ml-5 grid items-center space-x-5 items_spacing_y"><!-- Dep -->
+                            <div class="sm:flex sm:justify-center sm:ml-5 grid items-center space-x-5 items_spacing_y w-[350px]"><!-- Dep -->
                                 <h4 class="flex ml-5">Departamento:</h4>
                                 <select id="departments" v-model="selected_department_id_admin"
                                     @change="fetchDepartmentNameById(selected_department_id_admin);"
-                                    class="min-w-24 flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                    class="sm:max-w-[145px] max-w-[350px] min-w-24 flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
                                     <option selected disabled value="">Selecciona un departamento</option>
                                     <option v-for="department in departments" :key="department.id"
                                         :value="department.id">
@@ -512,11 +530,8 @@ onMounted(async () => {
                             </div>
                             <div class="sm:flex sm:justify-center grid items-center space-x-5 items_spacing_y "><!-- Dep -->
                                 <h4 class="flex ml-5">Número de empleados:</h4>
-                                <input type="number" v-model="users_available" :disabled="!selected_department_id_admin" @change="form.reset()" class="sm:max-w-[145px] min-w-14 flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" min="1" placeholder="mín 1" required />
-                            </div>
-
-                            <div class="flex justify-center items-center space-x-5 items_spacing_y mx-5"><!-- Dep -->
-                                <button @click="checkForScheduleTemplates(selected_department_id_admin, users_available)" class="flex items-center w-full justify-center ml-10 sm:ml-0 sm:mt-0 bg-green-600/70 hover:bg-green-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg" :disabled="!selected_department_id_admin || !users_available"> Comprobar</button>
+                                <input type="number" v-model="users_available" :disabled="!selected_department_id_admin" @change="form.reset(), showAddScheduleButton = false" class="sm:max-w-[145px] max-w-[350px] min-w-14 flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" min="1" placeholder="mín 1" required />
+                                <button @click="checkForScheduleTemplates(selected_department_id_admin, users_available)" class="sm:max-w-[145px] max-w-[350px] min-w-14 flex-1 text-white text-lg rounded-lg bg-green-500/80 hover:bg-green-500/70 block w-full p-1.5 my-2" :disabled="!selected_department_id_admin || !users_available"> Comprobar</button>
                             </div>
                         </div>
                         <div v-if="existing_template_data.length > 0" class="overflow-auto p-4 justify-center items-center">
@@ -543,23 +558,27 @@ onMounted(async () => {
                                     </tr>
                                 </tbody>
                             </table>
-                            <button @click="removeScheduleTemplate(selected_department_id_admin, users_available), checkForScheduleTemplates(selected_department_id_admin, users_available);" class="text-white text-lg rounded-lg bg-red-500 hover:bg-red-500/80 p-1 my-2"> ELIMINAR PLANTILLA </button>
                         </div>
-                        <div v-if="existing_template_error.status" class="flex justify-center py-2 items-center w-full">
-                            <div class="grid">
+                        <div v-if="existing_template_data.length > 0" class="sm:flex sm:justify-between items-center grid pr-9 sm:pr-4">
+                            <button @click="removeScheduleTemplate(selected_department_id_admin, users_available), checkForScheduleTemplates(selected_department_id_admin, users_available);" class="sm:ml-5 text-white text-lg rounded-lg bg-red-500 hover:bg-red-500/80 p-1 my-2 sm:w-full"> ELIMINAR PLANTILLA </button>
+                        </div>
+                        <div v-if="existing_template_error.status && showAddScheduleButton" class="sm:flex sm:justify-center items-center flex-col space-y-2 pr-9">
+
                                 <p class="text-red-400"> {{ existing_template_error.message }}</p>
-                                <button @click="form.department_id = selected_department_id_admin, form.users_available = users_available, initializeForm();" class="text-white text-lg rounded-lg bg-green-500/80 hover:bg-green-500/70 p-1 my-2"> AÑADIR PLANTILLA </button>
-                            </div>
+                                <button @click="form.department_id = selected_department_id_admin, form.users_available = users_available, initializeForm(), showAddScheduleButton = false;" class="flex items-center w-full justify-center  sm:ml-0 sm:mt-0 bg-green-600/70 hover:bg-green-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg"> AÑADIR PLANTILLA </button>
+
                         </div>
-                        <div v-if="form.users_schedules.length > 0" class="overflow-auto px-12">
-                            <div class="space-y-2">
-                                <button @click="addScheduleTemplate()" class="flex items-center w-full justify-center ml-10 sm:ml-0 sm:mt-0 bg-green-600/70 hover:bg-green-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg">
+                        <div v-if="form.users_schedules.length > 0" class="sm:flex sm:justify-center items-center flex-col space-y-2 pr-9">
+
+                                <button v-if="form.users_schedules.length > 0" @click="addScheduleTemplate()" class="flex items-center w-full justify-center  sm:ml-0 sm:mt-0 bg-green-600/70 hover:bg-green-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg">
                                     GUARDAR
                                 </button>
-                                <button @click="form.reset()" class="flex items-center w-full justify-center ml-10 sm:ml-0 sm:mt-0 bg-red-600/70 hover:bg-red-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg">
+                                <button v-if="form.users_schedules.length > 0" @click="form.reset()" class="flex items-center w-full justify-center sm:ml-0 sm:mt-0 bg-red-600/70 hover:bg-red-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg">
                                     CANCELAR
                                 </button>
-                            </div>
+
+                        </div>
+                        <div v-if="form.users_schedules.length > 0" class="overflow-auto px-12 py-5">
                             <table>
                                 <thead>
                                     <tr>
@@ -574,8 +593,8 @@ onMounted(async () => {
                                         <td> {{ 'Usuario: ' + (userIndex + 1) }} </td>
                                         <td v-for="(day, dayIndex) in user.schedules" :key="dayIndex" :class="[day.is_free_day ? 'bg-green-500/30 rounded-lg' : '']">
                                             <div class="flex flex-wrap justify-center py-1">
-                                                <input type="time" v-model="day.start_time" step="1" class="bg-gray-50 border leading-none border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" min="00:00" max="00:00" value="00:00" required />
-                                                <input type="time" v-model="day.end_time" step="1" class="bg-gray-50 border leading-none border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" min="00:00" max="00:00" value="00:00" required />
+                                                <input type="time" v-model="day.start_time" step="1" class="bg-gray-50 border leading-none border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" min="00:00" max="00:00" value="00:00" required :class="[day.start_time === '' ? 'dark:text-red-500/40' : '']"/>
+                                                <input type="time" v-model="day.end_time" step="1" class="bg-gray-50 border leading-none border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" min="00:00" max="00:00" value="00:00" required :class="[day.end_time === '' ? 'dark:text-red-500/40' : '']"/>
                                                 <label>Día libre: <input type="checkbox" v-model="day.is_free_day" class="mr-1 w-3.5 h-3.5 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-green-500 dark:border-gray-600"/></label>
                                             </div>
                                         </td>
@@ -645,20 +664,13 @@ onMounted(async () => {
                     <div class="flex justify-around mb-5 grid_style_legend"> <!-- Legend container -->
                         <div class="flex justify-around mx-2 items-center items_spacing_y"> <!-- Legend div -->
                             <div class="w-16 h-6 mr-1.5 today rounded-md"><!-- Today -->
-                                <p class="flex today_th text-xs">{{ moment().format('DD-MM-YYYY') }}</p>
+<!--                                 <p class="flex today_th text-xs">{{ moment().format('DD-MM-YYYY') }}</p> -->
                             </div>
                             <div>
                                 <p class="text-white">Hoy.</p>
                             </div>
                         </div>
-                        <div class="flex justify-around mx-2 items-center items_spacing_y"> <!-- Legend div -->
-                            <div class="w-16 h-6 mr-1.5 is_not_confirmed_holiday rounded-md"><!-- Today -->
-                                <p class="flex justify-end pr-[26px] items-center">?</p>
-                            </div>
-                            <div>
-                                <p class="text-white">Vac. no confirmadas.</p>
-                            </div>
-                        </div>
+
                         <div class="flex justify-around mx-2 items-center items_spacing_y"> <!-- Legend div -->
                             <div class="w-16 h-6 mr-1.5 bg-[#f5ac10] rounded-md"><!-- Confirmed holidays -->
                             </div>
@@ -929,7 +941,7 @@ onMounted(async () => {
     cursor: context-menu;
 }
 .today_th{
-    font-size: 10px;
+    font-size: 12px;
     font-weight: bold;
     justify-items: center;
     align-content: center;

@@ -7,14 +7,14 @@ use App\Models\User;
 
 class UserController extends Controller
 {
-    public function getUsersByDepartament(int $departament_id)
+    public function getUsersByDepartament($departament_id)
     {
         // Fetch the users for the given department
         $users = User::where('department', $departament_id)
         ->select('id', 'email', 'name')
         ->get();
-
-        return response()->json($users);
+        
+        return response()->$users;
     }
 
     public function getUserById(int $id)

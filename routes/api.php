@@ -7,6 +7,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\JobRangeController;
 
 /*
 |--------------------------------------------------------------------------
@@ -40,3 +41,4 @@ Route::middleware('auth:sanctum')->get('/week_numbers_by_month/{year}/{month}', 
 Route::middleware('auth:sanctum')->get('/weekly_schedules_for_month/{department_id}/{year}/{month}', [ScheduleController::class, 'getWeeklySchedulesForMonth']);
 Route::middleware('auth:sanctum')->get('/schedules_template_check/{department_id}/{users_available}', [ScheduleController::class, 'checkForScheduleTemplate']);
 
+Route::middleware('auth:sanctum')->get('/allJobRanges', [JobRangeController::class, 'getAll']);

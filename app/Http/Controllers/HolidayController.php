@@ -37,13 +37,13 @@ class HolidayController extends Controller
 
     public function index($year = null, $user_id = null, $search_accumulated_holidays = true)
     {
+        
         if (empty($user_id) || $user_id === null) {
             $user_id = Auth::guard('web')->user()->id;
             $user = Auth::guard('web')->user();
         } else {
             $user = User::find($user_id);
         }
-
         /* ALL DATA FOR A USER */
 
         //Stores the row/register/department where id of Departments table is equal to the current user's department_id.
@@ -51,15 +51,17 @@ class HolidayController extends Controller
         $department = Department::where('id', $user->department)->first();
 
         $this->DAYS_PER_MONTH = $department->holidays_per_month;
-        /* dd($year); */
+
         if ($year == null) $year = Carbon::now()->year; //If year NOT asigned, year == current year.
         //$today will be [The current date if $year matches current year] / [A Carbon date object representing Jenuary 1st of the $year, if this doesnt match the current year.]
         $today = $year == Carbon::now()->year ? Carbon::now() : Carbon::parse($year . '-01-01');
         //Selects the specific contract where contract's user_id == current user's id donde
         $job_ranges = JobRange::where('user_id', $user_id)
             ->where('start_date', 'like', $today->copy()->firstOfYear()->format('Y') . '%')
+/*             ->where('end_date', '>', $today->copy()->firstOfYear()->format('Y-m-d')) */
             ->with('contractType')
             ->get();
+
         $current_working_hours = 8; //Sets a default work hours/day in case no contract is found to callback.
         $hours = 0;
 
@@ -118,7 +120,6 @@ class HolidayController extends Controller
         //For each Holidays_spent entry it checks whether its status_type is pending,
         //confirmed, or confirmed plus past current date, which means its been enjoyed already.
         foreach ($holidays_spent as $holidays) {
-            /*  dd($holidays->date); */
             $holidays->status_type == 1 ? $pending_holiday_hours += $holidays->getHours() : false;
             $holidays->status_type == 2 ? $confirmed_holiday_hours += $holidays->getHours() : false;
             $holidays->status_type == 2 && Carbon::parse($holidays->date) < Carbon::now() ? $enjoyed_holiday_hours += $holidays->getHours() : false;
@@ -134,16 +135,17 @@ class HolidayController extends Controller
 
         /* USER'S MACRO OBJECT */
         $object = new \stdClass();
-
+/*         $object->accumulated_hours_previous_year = 0; */
         //$previous_year_pending_holidays is gonna be = to Index for prevous year, it calculates the hours to be requested(not enjoyed) and it saves them inside that variable.
         //If there's any holiday hours not enjoyed previous years it saves them inside accumulated_hours_previous_year, else accumulated_hours_previous_year is gonna be 0.
-        if ($search_accumulated_holidays && $year > 2023) {
-            $prevous_year_pending_holidays = json_decode($this->index($year - 1, $user_id, true))->holiday_hours_to_be_requested;
+        if ($search_accumulated_holidays && $year > 2024) {
+            $prevous_year_pending_holidays = json_decode($this->index(($year - 1), $user_id, true))->holiday_hours_to_be_requested;
             $object->accumulated_hours_previous_year = $prevous_year_pending_holidays < 0 ? 0 : $prevous_year_pending_holidays;
         } else {
             $object->accumulated_hours_previous_year = 0;
         }
-
+        
+        
         /* Building up the object with data related to user's holidays status. */
         $object->hours_per_contract = $hours;
         $object->hours_per_extra_days = $hours_per_extra_days;
@@ -151,20 +153,15 @@ class HolidayController extends Controller
         $object->confirmed_holiday_hours = $confirmed_holiday_hours;
         $object->enjoyed_holiday_hours = $enjoyed_holiday_hours;
         $object->pending_holiday_hours_to_be_enjoyed = ($confirmed_holiday_hours - $enjoyed_holiday_hours);
-
         $object->paid_holidays_days = $paid_holidays_days;
         $object->accumulated_holidays_days = round($object->accumulated_hours_previous_year / $current_working_hours, 0, PHP_ROUND_HALF_DOWN);
-
-        $object->pending_holidays_hours_to_be_requested = round($object->hours_per_contract == 0 ? 0 :
-            round($object->accumulated_hours_previous_year + $object->hours_per_contract - $object->pending_holiday_hours_to_be_confirmed - $object->confirmed_holiday_hours) / $current_working_hours);
+        $object->pending_holidays_hours_to_be_requested = ($object->hours_per_contract == 0 ? 0 : round($object->accumulated_hours_previous_year + $object->hours_per_contract - $object->pending_holiday_hours_to_be_confirmed - $object->confirmed_holiday_hours) / $current_working_hours);
         $object->extra_holidays_days = $object->hours_per_extra_days == 0 ? 0 : round($object->hours_per_extra_days / $current_working_hours, 1);
         $object->pending_holidays_total_to_be_requested = round($object->pending_holidays_hours_to_be_requested, 0, PHP_ROUND_HALF_DOWN) + $object->extra_holidays_days - $paid_holidays_days;
         $object->enjoyed_holidays_days = $object->enjoyed_holiday_hours == 0 ? 0 : round($object->enjoyed_holiday_hours / $current_working_hours, 0, PHP_ROUND_HALF_DOWN);
-
-        $object->holiday_hours_to_be_requested = (($hours + $hours_per_extra_days + $object->accumulated_hours_previous_year) - $confirmed_holiday_hours - $pending_holiday_hours - ($current_working_hours * $paid_holidays_days));
+        $object->holiday_hours_to_be_requested = (($hours + $hours_per_extra_days + $object->accumulated_hours_previous_year) - $confirmed_holiday_hours - $pending_holiday_hours - ($current_working_hours * $paid_holidays_days)); 
         $object->user = $user;
         $object->current_working_hours = $current_working_hours;
-
         return json_encode($object);
     }
 
@@ -265,6 +262,22 @@ class HolidayController extends Controller
         return $calendar;
     }
 
+    /**
+     * Cancel a holiday from a user.
+     * 
+     * Request body parameters:
+     * - id: Required, the ID of the holiday to cancel.
+     * - user.id: Required, the ID of the user who owns the holiday to cancel.
+     * 
+     * Returns a JSON response with the following structure:
+     * 
+     * - status: A string indicating the status of the operation.
+     *   - "Success" if the holiday was cancelled successfully.
+     *   - "Error" if any error occurred.
+     * - text: A string with a human-readable message.
+     * - calendar_data: An array with the updated calendar data.
+     * - holidays_data: A JSON string with the updated holidays data.
+     */
     public function cancelHolidays(Request $request)
     {
         try {
@@ -299,6 +312,16 @@ class HolidayController extends Controller
     }
 
 
+    /**
+     * Requests holidays for the currently logged in user.
+     *
+     * This method receives an array of dates in the format 'Y-m-d' and requests the holidays
+     * for the currently logged in user. The method will perform validation and return an
+     * array with the status of the request and the updated calendar and holidays data.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return array
+     */
     public function requestHolidays(Request $request)
     {
         $user = Auth::guard('web')->user();
@@ -496,6 +519,12 @@ class HolidayController extends Controller
         ];
     }
 
+    /**
+     * This function returns a list of users that have pending holidays to be confirmed.
+     * The list contains the user information and the state of their holidays.
+     * If the user has pending holidays to be confirmed, the state is replaced with the pending holidays.
+     * @return array
+     */
     public function holidaysToConfirmList() {
         $to_be_confirmed_list = Holiday::where('status_type', 1)->with('user', 'user.nonworkingdayzone')->get();
         $list = [];
@@ -517,6 +546,14 @@ class HolidayController extends Controller
         return $list;
     }
 
+    /**
+     * This function updates the status of a set of holidays with the given status.
+     * The function receives a Request object with the ids of the holidays to be updated and the new status.
+     * The function returns an array with the status of the request and the new list of holidays to be confirmed.
+     * If the request is successful, the function sends an email to the user with the updated holidays.
+     * @param Request $request
+     * @return array
+     */
     public function holidaysUpdateState(Request $request) {
         try {
             $user_notify = null;

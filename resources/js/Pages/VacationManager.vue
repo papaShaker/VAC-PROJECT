@@ -411,7 +411,7 @@ onBeforeMount(async () => {
                             vacaciones pendientes</button>
                     </div>
 
-                    <div class="w-full pb-14 px-4 flex items-center justify-center text-gray-900 dark:text-gray-100 relative overflow-x-auto mt-5"
+                    <div class="relative overflow-x-auto my-5"
                         v-if="loaded_to_be_confirmed_data">
                         <table class="text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
                             <thead class="text-xs border border-gray-600 text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">

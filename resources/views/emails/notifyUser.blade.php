@@ -87,7 +87,7 @@
 
 <body>
     <div class="header">
-        <h1>VAC</h1>
+        <h1>SGVH</h1>
     </div>
     <div class="content">
         <p>¡Hola!</p>
@@ -98,13 +98,13 @@
         </div>
         <footer class="footer">
             <p class="footer">Atentamente,<br>
-                VAC.</p>
+                SGVH.</p>
         </footer>
         <hr class="hr" />
     </div>
     <div class="content">
         <p class="link">
-            Si estás teniendo problemas con la verificación a través del botón "Verificar correo", copia y pega el
+            Si estás teniendo problemas con la verificación a través del botón "Entrar", copia y pega el
             siguiente enlace en tu navegador: <a href="{{ $link }}">{{ $link }}</a>
         </p>
     </div>

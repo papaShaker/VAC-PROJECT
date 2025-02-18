@@ -141,7 +141,7 @@ const selectDay = (day, key, month) => {
         }
         if (holidays_data.holiday_hours_to_be_requested >= (day.range_working_hours / 2) || day.day_selected == 1) {
             console.log('ENTRA -> 3');
-            if(holidays_data.pending_holidays_total_to_be_requested < 0) {
+            if(holidays_data.pending_holidays_total_to_be_requested <= 0) {
                 console.log('ENTRA -> 3.1');
                 toast.warning('No te quedan más días por solicitar.', toast_options/*  toast_warning_options */);
                 return;
@@ -191,7 +191,7 @@ const requestHolidays = async (event) => {
             requested_holidays_array: requested_holidays,
             year_passed: year.value,
         });
-
+        console.log(response);
         // Display the success toast
         toast.success(`${response.data.text}`, toast_options);
 
@@ -218,6 +218,7 @@ const cancelHolidays = async (id) => {
     modal_info_holidays.cancel_holidays = true;
     await axios.post("/vacations/delete", {id: id, user: user.value})
     .then((response) => {
+        console.log(response);
         if(response.data.status == "Success"){
             
             if (response.data.calendar_data != undefined) {

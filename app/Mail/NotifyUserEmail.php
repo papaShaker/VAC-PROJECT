@@ -35,7 +35,7 @@ class NotifyUserEmail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'VAC-Homerti | Nueva solicitud',
+            subject: 'SGVH-Homerti | Nueva solicitud',
         );
     }
 

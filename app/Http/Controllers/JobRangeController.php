@@ -9,6 +9,7 @@ class JobRangeController extends Controller
 {
     public function getAll()
     {
-        return JobRange::with(['contract_types'])->get();
+        dd(JobRange::with(['contractType'])->get());
+        return JobRange::with(['contractType'])->get();
     }
 }

@@ -1,5 +1,5 @@
 <script setup>
-import { defineProps, defineEmits, ref } from "vue";
+import { defineProps, defineEmits } from "vue";
 
 const props = defineProps({
   isOpen: Boolean,
@@ -14,7 +14,7 @@ const emit = defineEmits(["modal-close"]);
 <template>
   <div v-if="isOpen" class="modal-mask">
     <div class="modal-wrapper">
-      <div class="modal-container" ref="target"><!--  -->
+      <div class="modal-container" ref="target">
         <div class="bg-gray-600 p-3 rounded-md"><!-- inside body -->
           <div class="modal-header">
             <slot name="modal-header"> ... </slot>
@@ -32,7 +32,7 @@ const emit = defineEmits(["modal-close"]);
               </div>
             </slot>
           </div>
-        </div>
+        </div><!-- /inside body -->
       </div>
     </div>
   </div>
