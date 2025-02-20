@@ -25,6 +25,7 @@ const week_numbers_by_month = reactive([]);
 const week_dates_by_month = reactive([]);
 const selected_department_id = ref(null);
 const selected_department_id_admin = ref(null);
+const check_button_when_add_schedule_is_open = ref(false);
 const selected_month = ref(null);
 const selected_user_id = ref('');
 const months = reactive([]);
@@ -49,6 +50,7 @@ const edit_state = reactive({
     row: null,
 })
 const showAddScheduleButton = ref(false);
+const showAddScheduleButtonAfterFail = ref(true);
 
 const modal_schedules = reactive({
     department_id: selected_department_id,
@@ -93,11 +95,16 @@ const addScheduleTemplate = async () => {
                                                         users_available: form['users_available'],
                                                         users_schedules: form['users_schedules']
     }).then((response) => {
-
+        if (response.data.status){
+            form.reset();
+            toast.success(`${response.data.message}`, toast_options);
+        }
     }).catch((error) => {
        if(error.response && error.response.status === 400){
         toast.error(error.response.data.message, toast_options);
        };
+    }).finally(()=>{
+        checkForScheduleTemplates(selected_department_id_admin.value, users_available.value);
     });
 };
 
@@ -182,6 +189,9 @@ const checkForScheduleTemplates = async (department_id, users_available) => {
 
 const removeScheduleTemplate = async (department_id, users_available) => {
     await axios.delete('/schedules_template_delete/' + department_id + '/' + users_available).then((response) => {
+        if (response.data.status){
+            toast.success(`${response.data.message}`, toast_options);
+        }
         console.log(response.data);
     })
 }
@@ -519,7 +529,7 @@ onMounted(async () => {
                             <div class="sm:flex sm:justify-center sm:ml-5 grid items-center space-x-5 items_spacing_y w-[350px]"><!-- Dep -->
                                 <h4 class="flex ml-5">Departamento:</h4>
                                 <select id="departments" v-model="selected_department_id_admin"
-                                    @change="fetchDepartmentNameById(selected_department_id_admin);"
+                                    @change="fetchDepartmentNameById(selected_department_id_admin), check_button_when_add_schedule_is_open = false;"
                                     class="sm:max-w-[145px] max-w-[350px] min-w-24 flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
                                     <option selected disabled value="">Selecciona un departamento</option>
                                     <option v-for="department in departments" :key="department.id"
@@ -530,8 +540,8 @@ onMounted(async () => {
                             </div>
                             <div class="sm:flex sm:justify-center grid items-center space-x-5 items_spacing_y "><!-- Dep -->
                                 <h4 class="flex ml-5">Número de empleados:</h4>
-                                <input type="number" v-model="users_available" :disabled="!selected_department_id_admin" @change="form.reset(), showAddScheduleButton = false" class="sm:max-w-[145px] max-w-[350px] min-w-14 flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" min="1" placeholder="mín 1" required />
-                                <button @click="checkForScheduleTemplates(selected_department_id_admin, users_available)" class="sm:max-w-[145px] max-w-[350px] min-w-14 flex-1 text-white text-lg rounded-lg bg-green-500/80 hover:bg-green-500/70 block w-full p-1.5 my-2" :disabled="!selected_department_id_admin || !users_available"> Comprobar</button>
+                                <input type="number" v-model="users_available" :disabled="!selected_department_id_admin" @change="form.reset(), showAddScheduleButton = false, check_button_when_add_schedule_is_open = false" class="sm:max-w-[145px] max-w-[350px] min-w-14 flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" min="1" placeholder="mín 1" required />
+                                <button @click="checkForScheduleTemplates(selected_department_id_admin, users_available), showAddScheduleButtonAfterFail = true" class="sm:max-w-[145px] max-w-[350px] min-w-14 flex-1 text-white text-lg rounded-lg bg-green-500/80 hover:bg-green-500/70 block w-full p-1.5 my-2" :disabled="!selected_department_id_admin || !users_available || check_button_when_add_schedule_is_open"> Comprobar</button>
                             </div>
                         </div>
                         <div v-if="existing_template_data.length > 0" class="overflow-auto p-4 justify-center items-center">
@@ -562,18 +572,18 @@ onMounted(async () => {
                         <div v-if="existing_template_data.length > 0" class="sm:flex sm:justify-between items-center grid pr-9 sm:pr-4">
                             <button @click="removeScheduleTemplate(selected_department_id_admin, users_available), checkForScheduleTemplates(selected_department_id_admin, users_available);" class="sm:ml-5 text-white text-lg rounded-lg bg-red-500 hover:bg-red-500/80 p-1 my-2 sm:w-full"> ELIMINAR PLANTILLA </button>
                         </div>
-                        <div v-if="existing_template_error.status && showAddScheduleButton" class="sm:flex sm:justify-center items-center flex-col space-y-2 pr-9">
+                        <div v-if="existing_template_error.status && showAddScheduleButton && showAddScheduleButtonAfterFail" class="sm:flex sm:justify-center items-center flex-col space-y-2 pr-9">
 
-                                <p class="text-red-400"> {{ existing_template_error.message }}</p>
-                                <button @click="form.department_id = selected_department_id_admin, form.users_available = users_available, initializeForm(), showAddScheduleButton = false;" class="flex items-center w-full justify-center  sm:ml-0 sm:mt-0 bg-green-600/70 hover:bg-green-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg"> AÑADIR PLANTILLA </button>
+                                <p class="text-red-400 m-12"> {{ existing_template_error.message }}</p>
+                                <button @click="form.department_id = selected_department_id_admin, form.users_available = users_available, initializeForm(), showAddScheduleButton = false, check_button_when_add_schedule_is_open = true;" class="flex items-center w-full justify-center  sm:ml-0 sm:mt-0 bg-green-600/70 hover:bg-green-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg"> AÑADIR PLANTILLA </button>
 
                         </div>
                         <div v-if="form.users_schedules.length > 0" class="sm:flex sm:justify-center items-center flex-col space-y-2 pr-9">
 
-                                <button v-if="form.users_schedules.length > 0" @click="addScheduleTemplate()" class="flex items-center w-full justify-center  sm:ml-0 sm:mt-0 bg-green-600/70 hover:bg-green-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg">
+                                <button v-if="form.users_schedules.length > 0" @click="addScheduleTemplate(), showAddScheduleButtonAfterFail = false" class="flex items-center w-full justify-center  sm:ml-0 sm:mt-0 bg-green-600/70 hover:bg-green-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg">
                                     GUARDAR
                                 </button>
-                                <button v-if="form.users_schedules.length > 0" @click="form.reset()" class="flex items-center w-full justify-center sm:ml-0 sm:mt-0 bg-red-600/70 hover:bg-red-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg">
+                                <button v-if="form.users_schedules.length > 0" @click="form.reset(), check_button_when_add_schedule_is_open = false" class="flex items-center w-full justify-center sm:ml-0 sm:mt-0 bg-red-600/70 hover:bg-red-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg">
                                     CANCELAR
                                 </button>
 
@@ -602,7 +612,7 @@ onMounted(async () => {
                                 </tbody>
                             </table>
                         </div>
-                    </div>
+                    </div> <!-- till here -->
                 </div>
             </div>
         </div>
@@ -611,9 +621,9 @@ onMounted(async () => {
         <div class="pb-6 pt-3" :class="[admin_toggled ? 'pt-6 pb-6' : '']">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-4 flex justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
-                        <div class="flex justify-center items-center space-x-5 items_spacing_y"><!-- Dep -->
-                            <h4 class="flex">Departamento:</h4>
+                    <div class="p-2 pt-16 pb-8 grid items-center text-gray-900 dark:text-gray-100 sm:flex sm:justify-between px-6">
+                        <div class="sm:flex sm:justify-center sm:ml-5 grid items-center space-x-5 items_spacing_y w-[350px]"><!-- Dep -->
+                            <h4 class="flex ml-5">Departamento:</h4>
                             <form class="flex max-w-sm mx-auto items-center" @submit.prevent="">
                                 <label for="departments" class="text-xl font-medium text-gray-900 dark:text-white">
                                 </label>
@@ -628,8 +638,8 @@ onMounted(async () => {
                                 </select>
                             </form>
                         </div>
-                        <div class="flex justify-center items-center space-x-5 items_spacing_y">
-                            <h4 class="flex items-">Mes:</h4>
+                        <div class="sm:flex sm:justify-center sm:ml-5 grid items-center space-x-5 items_spacing_y w-[350px]">
+                            <h4 class="flex ml-5">Mes:</h4>
                             <form class="flex max-w-sm mx-auto items-center">
                                 <label for="month"></label>
                                 <select
@@ -644,8 +654,8 @@ onMounted(async () => {
                                 </select>
                             </form>
                         </div>
-                        <div class="flex justify-center items-center space-x-5 items_spacing_y">
-                            <h4 class="flex items-center">Semana:</h4>
+                        <div class="sm:flex sm:justify-center sm:ml-5 grid items-center space-x-5 items_spacing_y w-[350px]">
+                            <h4 class="flex ml-5">Semana:</h4>
                             <form class="flex max-w-sm mx-auto items-center">
                                 <label for="month"></label>
                                 <select
@@ -1019,3 +1029,10 @@ onMounted(async () => {
   }
 }
 </style>
+
+
+
+Autenticación y autorización de usuarios.
+
+Cálculo automático de los días de vacaciones según el tipo de contrato del empleado.
+
