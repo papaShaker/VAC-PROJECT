@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use Inertia\Inertia;
 use App\Models\JobRange;
 use App\Models\Department;
+use App\Models\NonWorkingDayZone;
 use App\Models\ContractType;
 use App\Models\HolidaysPaid;
 use Illuminate\Http\Request;
@@ -50,5 +51,14 @@ class ManagerController extends Controller
             return ["status" => "Error",
                     "text" => "Ha surgido un problema durante la inserción del nuevo contrato."];
         }
+    }
+
+    public function getDepartments(){
+        $departments = Department::select('id', 'name')->get();
+        return $departments;
+    }
+
+    public function getNonWorkingDayZones(){
+        $zones = NonWorkingDayZone::select('id', 'zone')->get();
     }
 }

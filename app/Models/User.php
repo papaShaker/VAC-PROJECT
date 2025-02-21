@@ -55,9 +55,9 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Holiday::class, 'user_id', 'id');
     }
     
-    public function holidayzone(){
+/*     public function holidayzone(){
         return $this->hasOne(HolidayZone::class, 'id', 'holiday_zone');
-    }
+    } */
 
     public function nonworkingdayzone(){
         return $this->hasOne(NonWorkingDayZone::class, 'id', 'holiday_zone');

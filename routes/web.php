@@ -7,6 +7,7 @@ use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\WeeklyScheduleController;
+use App\Models\User;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -105,7 +106,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     
     Route::post('/manager/update/holidays', [HolidayController::class, 'holidaysUpdateState'])
         ->name('updateHolidays');
+
+
+    /* ---ADMINISTRATION ROUTES--- */
+    // This route renders the 'VacationsManager' view
+    Route::get('/fetch/users', [UserController::class, 'getAllUsers'])
+        ->name('fetchUsers');
+
 });
+
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

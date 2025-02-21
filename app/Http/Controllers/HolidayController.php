@@ -15,7 +15,6 @@ use App\Models\ExtraDayType;
 use App\Models\Holiday;
 use App\Models\HolidayStatusType;
 use App\Models\HolidaysPaid;
-use App\Models\HolidayZone;
 use App\Models\ContractType;
 use App\Models\JobRange;
 use App\Models\Department;
@@ -172,16 +171,26 @@ class HolidayController extends Controller
         $users_same_day_holidays = Department::find($user->department)->users_same_day_holidays;
 
 
-        $user_holiday_zone = User::where('id', $user_id)->with('holidayzone')->first();
+        $user_holiday_zone = User::where('id', $user_id)->with('nonworkingdayzone')->first();
         $all_holiday_zones = NonWorkingDayZone::select('id');
         $holiday_zones_list = [];
-        //Searches for the user's holiday zone's parent. While it's not null, 
-        if ($user_holiday_zone->holidayzone != null) {
-            $holiday_zones_list[] = $user_holiday_zone->holidayzone->id;
-            $parent_zone_search = $user_holiday_zone->holidayzone->parent;
+        
+        if ($user_holiday_zone && $user_holiday_zone->nonworkingdayzone) {
+            // Start with the user's own holiday zone
+            $holiday_zones_list[] = $user_holiday_zone->nonworkingdayzone->id;
+            
+            // Traverse up the hierarchy
+            $parent_zone_search = $user_holiday_zone->nonworkingdayzone->parent;
+            
             while ($parent_zone_search != null) {
-                $parent_zone = $all_holiday_zones->where('id', $parent_zone_search)->first();
-                $holiday_zones_list[] = $parent_zone->parent; //An array of all holiday zones for this user is created, starting from the most specific zone to the most general which englobe the specific ones.
+                $parent_zone = NonWorkingDayZone::where('id', $parent_zone_search)->first();
+                
+                if (!$parent_zone) {
+                    break; // Prevent infinite loop if parent ID is invalid
+                }
+                
+                $holiday_zones_list[] = $parent_zone->id;
+                $parent_zone_search = $parent_zone->parent; // Update for next iteration
             }
         }
 
@@ -384,9 +393,9 @@ class HolidayController extends Controller
         $users->by_department = [];
         $all_holiday_zones = NonWorkingDayZone::all()->keyBy('id'); // Use keyBy for fast access
         if ($passed_department_id == 'all'){
-            $users_by_department = User::with('holidayzone')->get();
+            $users_by_department = User::with('nonworkingdayzone')->get();
         } else {
-            $users_by_department = User::with('holidayzone')->where('department', $passed_department_id)->get();
+            $users_by_department = User::with('nonworkingdayzone')->where('department', $passed_department_id)->get();
             $users_same_day_holidays = Department::find($passed_department_id)->users_same_day_holidays;
         }
 
@@ -396,7 +405,7 @@ class HolidayController extends Controller
             $user_data = (object)[
                 'id' => $user->id,
                 'name' => $user->name,
-                'holiday_zones' => $this->getUserHolidayZones($user->holidayzone, $all_holiday_zones)
+                'holiday_zones' => $this->getUserHolidayZones($user->nonworkingdayzone, $all_holiday_zones)
             ];
             $users->by_department[$passed_department_id][] = $user_data;
         }

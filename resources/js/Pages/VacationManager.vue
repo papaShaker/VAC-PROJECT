@@ -11,12 +11,86 @@ const props = defineProps({
     departments: Array,
 });
 
-const admin_toggled = ref(false);
+const users_toggled = ref(false);
+const departments_toggled = ref(false);
+const contracts_toggled = ref(false);
+const contract_types_toggled = ref(false);
+const zones_toggled = ref(false);
+const non_working_days_toggled = ref(false);
+const extra_days_toggled = ref(false);
+const extra_day_types_toggled = ref(false);
+const users = ref([]);
+const departments = ref([]); // Store fetched departments
+const zones = ref([]); // Store fetched zones
+const is_editing = ref(false);
+const edit_state = reactive({
+    table: null,
+    row: null,
+    selected_department: null,
+    selected_zone: null,
+});
 
-const toggleAdmin = () => {
-    admin_toggled.value = !admin_toggled.value;
-    console.log("TOGGLES");    
+const startEditing = (row_index, table_index) => {
+    console.log("StartEditing --> Table index: " + table_index);
+    is_editing.value = true;
+    edit_state.row = row_index;
+    edit_state.table = table_index;
+};
+
+const closeEditing = (row_index, table_index) => {
+    if (edit_state.row === row_index && edit_state.table === table_index) {
+        is_editing.value = false;
+        edit_state.row = null;
+        edit_state.table = null;
+    }
+};
+
+/* USERS FUNCTIONS */
+const fetchUsers = () => {
+    axios.get('/fetch/users').then((response) => {
+        users.value = response.data;
+        console.log(response.data);
+    }).catch(error => {
+        console.error('Error', error);
+    });
 }
+
+const fetchDepartmentsAndZones = async () => {
+    try {
+        const [departmentsData, zonesData] = await Promise.all([
+            axios.get('/fetch/departments'),
+            axios.get('/fetch/zones'),
+        ]);
+        departments.value = departmentsData.data;
+        zones.value = zonesData.data;
+    } catch (error) {
+        console.error("Ha surgido un error:", error);
+    }
+};
+
+const editUser = (user_id) => {
+    
+}
+
+/* DEPARTMENT FUNCTIONS */
+
+/* CONTRACT FUNCTIONS */
+
+/* CONTRACT TYPE FUNCTIONS */
+
+/* FESTIVOS FUNCTIONS */
+
+/* NON WORKING DAY ZONES FUNCTIONS */
+
+/* EXTRA DAY FUNCTIONS */ 
+
+/* EXTRA DAY TYPE FUNCTIONS */ 
+
+
+onMounted(() => {
+    fetchUsers();
+    fetchDepartmentsAndZones()
+});
 
 </script>
 
@@ -31,59 +105,375 @@ const toggleAdmin = () => {
             </h2>
         </template>
 
-        <div class="w-full py-12"> <!-- Container-fluid -->
+<!-- CHECKBOX USERS -->
+        <div class="w-full pt-12"> <!-- CHECKBOX USERS START -->
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-4 flex justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
+                    <div class="px-4 py-2 flex justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
                         <div class="w-full bg-white dark:bg-gray-800 rounded-md">
-                            
-<!-- CHECKBOX USERS -->
-            
-                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg" :class="[(admin_toggled) ? 'admin_toggled' : '',]">
-                    <div class="py-2 flex justify-between items-center space-x-5 text-gray-900 dark:text-gray-100 bg-gray-800 px-4">
-                        <div class="text-2xl font-bold" style="font-family: 'Abel', sans-serif;"> EMPLEADOS</div>
-                        <div class="flex items-center">
-                        <!-- Toggle Switch -->
-                        <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" class="sr-only peer" :checked="admin_toggled" @change="toggleAdmin()">
-                                <div
-                                class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-800 
-                                        peer-focus:ring-1 peer-focus:ring-blue-100 transition-all">
-                                </div>
-                                <div
-                                class="absolute text-gray-700 bg-white left-1 top-1 w-4 h-4 rounded-full shadow 
-                                        peer-checked:translate-x-5 transition-transform peer-checked:text-green-500 peer-checked:left-1.5">
-                                        <i class="fa-solid fa-wrench text-xs absolute top-0.6 left-0.5"></i>
+                            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg" :class="[(users_toggled) ? 'admin_toggled' : '',]">
+                                <div class="py-2 flex justify-between items-center space-x-5 text-gray-900 dark:text-gray-100 bg-gray-800 px-4">
+                                    <div class="text-xl font-bold" style="font-family: 'Abel', sans-serif;"> EMPLEADOS</div>
+                                    <div class="flex items-center">
+                                    <!-- Toggle Switch -->
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" class="sr-only peer" :checked="users_toggled" @change="users_toggled=!users_toggled, fetchUsers()">
+                                            <div
+                                            class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-800 
+                                                    peer-focus:ring-1 peer-focus:ring-blue-100 transition-all">
+                                            </div>
+                                            <div
+                                            class="absolute text-gray-700 bg-white left-1 top-1 w-4 h-4 rounded-full shadow 
+                                                    peer-checked:translate-x-5 transition-transform peer-checked:text-green-500 peer-checked:left-1.5">
+                                                    <i class="fa-solid fa-wrench text-xs absolute top-0.6 left-0.5"></i>
+                                                </div>
+                                        </label>
                                     </div>
-                            </label>
+                                </div>
+                                <div v-if="users_toggled" class="w-full p-2 pb-8 bg-gray-800 grid justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
+
+                                    <!-- SLOT -->
+<!--AÑADIR USUARIO                  <div class="py-2 flex justify-end items-center space-x-5 text-gray-900 dark:text-gray-100">
+                                        <button>AÑADIR USUARIO</button>
+                                    </div> -->
+                                    <div class="bg-gray-900">
+                                        <table class="sm:w-[32rem] w-[24rem] text-sm text-left text-gray-500 dark:text-gray-400 bg-slate-600">
+                                            <thead>
+                                                <tr class="justify-center item-center">
+                                                    <th class="text-center text-gray-900 dark:text-gray-100">ID</th>
+                                                    <th class="text-center text-gray-900 dark:text-gray-100">NOMBRE</th>
+                                                    <th class="text-center text-gray-900 dark:text-gray-100">DPTO</th>
+                                                    <th class="text-center text-gray-900 dark:text-gray-100">ZONA</th>
+                                                    <th class="text-center text-gray-900 dark:text-gray-100">EDITAR</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr v-for="(user, user_index) in users" :key="user.id" class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                                                    <td class="text-center text-gray-900 dark:text-green-300 py-1">{{ user.id }}</td>
+                                                    <td class="text-center text-gray-900 dark:text-gray-100">{{ user.name }}</td>
+                                                    <td class="text-center text-gray-900 dark:text-gray-100">{{ user.department?.name }}</td>
+                                                    <td class="text-center text-gray-900 dark:text-gray-100">{{ user.nonworkingdayzone?.zone }}</td>
+                                                    <td class="text-center text-gray-900 dark:text-gray-100">
+                                                        <template v-if="is_editing && edit_state.row === user_index">
+                                                            <button @click="closeEditing(user_index)">
+                                                                <i class="ml-2 text-lg text-red-400 fa-solid fa-xmark"></i>
+                                                            </button>
+                                                        </template>
+                                                        <template v-else>
+                                                            <button @click="startEditing(user_index)">
+                                                                <i class="ml-2 text-lg text-yellow-200 fa-regular fa-pen-to-square"></i>
+                                                            </button>
+                                                        </template>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <!-- END SLOT -->
+
+                                </div>
+                            </div> 
                         </div>
                     </div>
-                    <div v-if="admin_toggled" class="p-2 pb-8 bg-gray-800 grid justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
-
-                        <!-- SLOT -->
-                        <div class="sm:flex sm:justify-between items-center grid">
-                            SLOT
-                        </div>
-                        <!-- END SLOT -->
-
-                    </div>
-                </div>
-      
-
-<!-- CHECKBOX USERS END -->
-
-
-                        </div>
-                    <!-- START TABLE -->
-                    </div>
-                
-                    <!-- MODAL UPDATE VACATIONS END -->
-
-                    <!-- END TO BE CONFIRMED VACATIONS -->
-
                 </div>
             </div>
         </div>
+<!-- CHECKBOX USERS END -->
+
+<!-- CHECKBOX DEPARTMENTS -->
+        <div class="w-full pt-4"> <!-- CHECKBOX DEPARTMENTS START -->
+            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="px-4 py-2 flex justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
+                        <div class="w-full bg-white dark:bg-gray-800 rounded-md">
+                            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg" :class="[(departments_toggled) ? 'admin_toggled' : '',]">
+                                <div class="py-2 flex justify-between items-center space-x-5 text-gray-900 dark:text-gray-100 bg-gray-800 px-4">
+                                    <div class="text-xl font-bold" style="font-family: 'Abel', sans-serif;"> DEPARTAMENTOS</div>
+                                    <div class="flex items-center">
+                                    <!-- Toggle Switch -->
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" class="sr-only peer" :checked="departments_toggled" @change="departments_toggled=!departments_toggled">
+                                            <div
+                                            class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-800 
+                                                    peer-focus:ring-1 peer-focus:ring-blue-100 transition-all">
+                                            </div>
+                                            <div
+                                            class="absolute text-gray-700 bg-white left-1 top-1 w-4 h-4 rounded-full shadow 
+                                                    peer-checked:translate-x-5 transition-transform peer-checked:text-green-500 peer-checked:left-1.5">
+                                                    <i class="fa-solid fa-wrench text-xs absolute top-0.6 left-0.5"></i>
+                                                </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div v-if="departments_toggled" class="p-2 pb-8 bg-gray-800 grid justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
+
+                                    <!-- SLOT -->
+                                    <div class="sm:flex sm:justify-between items-center grid">
+                                        SLOT
+                                    </div>
+                                    <!-- END SLOT -->
+
+                                </div>
+                            </div> 
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+<!-- CHECKBOX DEPARTMENTS END -->
+
+<!-- CHECKBOX CONTRACTS -->
+        <div class="w-full pt-4"> <!-- CHECKBOX CONTRACTS START -->
+            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="px-4 py-2 flex justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
+                        <div class="w-full bg-white dark:bg-gray-800 rounded-md">
+                            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg" :class="[(contracts_toggled) ? 'admin_toggled' : '',]">
+                                <div class="py-2 flex justify-between items-center space-x-5 text-gray-900 dark:text-gray-100 bg-gray-800 px-4">
+                                    <div class="text-xl font-bold" style="font-family: 'Abel', sans-serif;"> CONTRATOS</div>
+                                    <div class="flex items-center">
+                                    <!-- Toggle Switch -->
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" class="sr-only peer" :checked="contracts_toggled" @change="contracts_toggled=!contracts_toggled">
+                                            <div
+                                            class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-800 
+                                                    peer-focus:ring-1 peer-focus:ring-blue-100 transition-all">
+                                            </div>
+                                            <div
+                                            class="absolute text-gray-700 bg-white left-1 top-1 w-4 h-4 rounded-full shadow 
+                                                    peer-checked:translate-x-5 transition-transform peer-checked:text-green-500 peer-checked:left-1.5">
+                                                    <i class="fa-solid fa-wrench text-xs absolute top-0.6 left-0.5"></i>
+                                                </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div v-if="contracts_toggled" class="p-2 pb-8 bg-gray-800 grid justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
+
+                                    <!-- SLOT -->
+                                    <div class="sm:flex sm:justify-between items-center grid">
+                                        SLOT
+                                    </div>
+                                    <!-- END SLOT -->
+
+                                </div>
+                            </div> 
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+<!-- CHECKBOX CONTRACTS END -->
+
+<!-- CHECKBOX CONTRACT TYPES -->
+        <div class="w-full pt-4"> <!-- CHECKBOX CONTRACT TYPES -->
+            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="px-4 py-2 flex justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
+                        <div class="w-full bg-white dark:bg-gray-800 rounded-md">
+                            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg" :class="[(contract_types_toggled) ? 'admin_toggled' : '',]">
+                                <div class="py-2 flex justify-between items-center space-x-5 text-gray-900 dark:text-gray-100 bg-gray-800 px-4">
+                                    <div class="text-xl font-bold" style="font-family: 'Abel', sans-serif;"> TIPOS DE CONTRATO</div>
+                                    <div class="flex items-center">
+                                    <!-- Toggle Switch -->
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" class="sr-only peer" :checked="contracts_togcontract_types_toggledgled" @change="contract_types_toggled=!contract_types_toggled">
+                                            <div
+                                            class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-800 
+                                                    peer-focus:ring-1 peer-focus:ring-blue-100 transition-all">
+                                            </div>
+                                            <div
+                                            class="absolute text-gray-700 bg-white left-1 top-1 w-4 h-4 rounded-full shadow 
+                                                    peer-checked:translate-x-5 transition-transform peer-checked:text-green-500 peer-checked:left-1.5">
+                                                    <i class="fa-solid fa-wrench text-xs absolute top-0.6 left-0.5"></i>
+                                                </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div v-if="contract_types_toggled" class="p-2 pb-8 bg-gray-800 grid justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
+
+                                    <!-- SLOT -->
+                                    <div class="sm:flex sm:justify-between items-center grid">
+                                        SLOT
+                                    </div>
+                                    <!-- END SLOT -->
+
+                                </div>
+                            </div> 
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+<!-- CHECKBOX CONTRACT TYPES END -->
+
+<!-- CHECKBOX ZONES -->
+        <div class="w-full pt-4"> <!-- CHECKBOX ZONES -->
+            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="px-4 py-2 flex justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
+                        <div class="w-full bg-white dark:bg-gray-800 rounded-md">
+                            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg" :class="[(zones_toggled) ? 'admin_toggled' : '',]">
+                                <div class="py-2 flex justify-between items-center space-x-5 text-gray-900 dark:text-gray-100 bg-gray-800 px-4">
+                                    <div class="text-xl font-bold" style="font-family: 'Abel', sans-serif;"> ZONAS</div>
+                                    <div class="flex items-center">
+                                    <!-- Toggle Switch -->
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" class="sr-only peer" :checked="zones_toggled" @change="zones_toggled=!zones_toggled">
+                                            <div
+                                            class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-800 
+                                                    peer-focus:ring-1 peer-focus:ring-blue-100 transition-all">
+                                            </div>
+                                            <div
+                                            class="absolute text-gray-700 bg-white left-1 top-1 w-4 h-4 rounded-full shadow 
+                                                    peer-checked:translate-x-5 transition-transform peer-checked:text-green-500 peer-checked:left-1.5">
+                                                    <i class="fa-solid fa-wrench text-xs absolute top-0.6 left-0.5"></i>
+                                                </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div v-if="zones_toggled" class="p-2 pb-8 bg-gray-800 grid justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
+
+                                    <!-- SLOT -->
+                                    <div class="sm:flex sm:justify-between items-center grid">
+                                        SLOT
+                                    </div>
+                                    <!-- END SLOT -->
+
+                                </div>
+                            </div> 
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+<!-- CHECKBOX ZONES END -->
+
+<!-- CHECKBOX NON WORKING DAYS -->
+        <div class="w-full pt-4"> <!-- CHECKBOX NON WORKING DAYS -->
+            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="px-4 py-2 flex justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
+                        <div class="w-full bg-white dark:bg-gray-800 rounded-md">
+                            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg" :class="[(non_working_days_toggled) ? 'admin_toggled' : '',]">
+                                <div class="py-2 flex justify-between items-center space-x-5 text-gray-900 dark:text-gray-100 bg-gray-800 px-4">
+                                    <div class="text-xl font-bold" style="font-family: 'Abel', sans-serif;"> FESTIVOS</div>
+                                    <div class="flex items-center">
+                                    <!-- Toggle Switch -->
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" class="sr-only peer" :checked="non_working_days_toggled" @change="non_working_days_toggled=!non_working_days_toggled">
+                                            <div
+                                            class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-800 
+                                                    peer-focus:ring-1 peer-focus:ring-blue-100 transition-all">
+                                            </div>
+                                            <div
+                                            class="absolute text-gray-700 bg-white left-1 top-1 w-4 h-4 rounded-full shadow 
+                                                    peer-checked:translate-x-5 transition-transform peer-checked:text-green-500 peer-checked:left-1.5">
+                                                    <i class="fa-solid fa-wrench text-xs absolute top-0.6 left-0.5"></i>
+                                                </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div v-if="non_working_days_toggled" class="p-2 pb-8 bg-gray-800 grid justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
+
+                                    <!-- SLOT -->
+                                    <div class="sm:flex sm:justify-between items-center grid">
+                                        SLOT
+                                    </div>
+                                    <!-- END SLOT -->
+
+                                </div>
+                            </div> 
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+<!-- CHECKBOX NON WORKING DAYS END -->
+
+<!-- CHECKBOX EXTRA DAYS -->
+        <div class="w-full pt-4"> <!-- CHECKBOX EXTRA DAYS -->
+            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="px-4 py-2 flex justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
+                        <div class="w-full bg-white dark:bg-gray-800 rounded-md">
+                            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg" :class="[(extra_days_toggled) ? 'admin_toggled' : '',]">
+                                <div class="py-2 flex justify-between items-center space-x-5 text-gray-900 dark:text-gray-100 bg-gray-800 px-4">
+                                    <div class="text-xl font-bold" style="font-family: 'Abel', sans-serif;"> DÍAS EXTRA</div>
+                                    <div class="flex items-center">
+                                    <!-- Toggle Switch -->
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" class="sr-only peer" :checked="extra_days_toggled" @change="extra_days_toggled=!extra_days_toggled">
+                                            <div
+                                            class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-800 
+                                                    peer-focus:ring-1 peer-focus:ring-blue-100 transition-all">
+                                            </div>
+                                            <div
+                                            class="absolute text-gray-700 bg-white left-1 top-1 w-4 h-4 rounded-full shadow 
+                                                    peer-checked:translate-x-5 transition-transform peer-checked:text-green-500 peer-checked:left-1.5">
+                                                    <i class="fa-solid fa-wrench text-xs absolute top-0.6 left-0.5"></i>
+                                                </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div v-if="extra_days_toggled" class="p-2 pb-8 bg-gray-800 grid justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
+
+                                    <!-- SLOT -->
+                                    <div class="sm:flex sm:justify-between items-center grid">
+                                        SLOT
+                                    </div>
+                                    <!-- END SLOT -->
+
+                                </div>
+                            </div> 
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+<!-- CHECKBOX EXTRA DAYS END -->
+
+<!-- CHECKBOX EXTRA DAY TYPES -->
+        <div class="w-full pt-4"> <!-- CHECKBOX EXTRA DAY TYPES -->
+            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="px-4 py-2 flex justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
+                        <div class="w-full bg-white dark:bg-gray-800 rounded-md">
+                            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg" :class="[(extra_day_types_toggled) ? 'admin_toggled' : '',]">
+                                <div class="py-2 flex justify-between items-center space-x-5 text-gray-900 dark:text-gray-100 bg-gray-800 px-4">
+                                    <div class="text-xl font-bold" style="font-family: 'Abel', sans-serif;"> TIPOS DE DÍAS EXTRA</div>
+                                    <div class="flex items-center">
+                                    <!-- Toggle Switch -->
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" class="sr-only peer" :checked="extra_day_types_toggled" @change="extra_day_types_toggled=!extra_day_types_toggled">
+                                            <div
+                                            class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-800 
+                                                    peer-focus:ring-1 peer-focus:ring-blue-100 transition-all">
+                                            </div>
+                                            <div
+                                            class="absolute text-gray-700 bg-white left-1 top-1 w-4 h-4 rounded-full shadow 
+                                                    peer-checked:translate-x-5 transition-transform peer-checked:text-green-500 peer-checked:left-1.5">
+                                                    <i class="fa-solid fa-wrench text-xs absolute top-0.6 left-0.5"></i>
+                                                </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div v-if="extra_day_types_toggled" class="p-2 pb-8 bg-gray-800 grid justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
+
+                                    <!-- SLOT -->
+                                    <div class="sm:flex sm:justify-between items-center grid">
+                                        SLOT
+                                    </div>
+                                    <!-- END SLOT -->
+
+                                </div>
+                            </div> 
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+<!-- CHECKBOX EXTRA DAY TYPES END -->
+
     </AuthenticatedLayout>
 </template>
 

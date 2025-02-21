@@ -164,7 +164,7 @@ class ScheduleController extends Controller
         $users = new \stdClass;
         $users->by_department = [];
         $all_holiday_zones = NonWorkingDayZone::all()->keyBy('id'); // Use keyBy for fast access
-        $users_by_department = User::with('holidayzone')->where('department', $passed_department_id)->get();
+        $users_by_department = User::with('nonworkingdayzone')->where('department', $passed_department_id)->get();
 
         $users_same_day_holidays = Department::find($passed_department_id)->users_same_day_holidays;
 

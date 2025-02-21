@@ -20,10 +20,23 @@ class UserController extends Controller
     public function getUserById(int $id)
     {
         $user = User::where('id', $id)
-        ->select('id', 'email', 'name', 'department', 'holidayzone')
+        ->select('id', 'email', 'name', 'department', 'holiday_zone')
         ->get()
         ->first();
 
         return response()->json($user);
+    }
+
+    public function getAllUsers()
+    {
+        $users = User::select('id', 'name', 'department', 'holiday_zone')
+            ->with([
+                'department:id,name',
+                'nonworkingdayzone:id,zone'
+            ])
+            ->orderBy('name')
+            ->get();
+            
+        return $users;
     }
 }

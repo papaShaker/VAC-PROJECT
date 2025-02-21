@@ -139,13 +139,8 @@ const fetchCalendarData = async (consulted_year = null, consulted_department_id,
             console.log(calendar_data);
             getHolidaysRelevantInfo(response.data);
 
-            // Check if any entry has is_holiday == 1
-            const hasHoliday = response.data.some((index) =>
-                index.days && Object.values(index.days).some(day => day.is_holiday === 1)
-            );
-
             // Set selected_month_check based on the presence of is_holiday == 1
-            selected_month_check.value = hasHoliday;
+            selected_month_check.value = true;
         })
         .catch((error) => { console.error(error) });
 }
@@ -182,7 +177,8 @@ const getHolidaysRelevantInfo = (passed_data) => {
         }
         holidays_data.reverse();
     });
-    console.log(holidays_data);
+    console.log("HOLIDAYS_DATA");
+    console.log(holidays_data.length);
 };
 
 const generateMonthOptions = async () => {
@@ -366,7 +362,7 @@ const handleCheckboxChangeHolidaysToBeConfirmed = (vac) => {
         </template>
 
 <!-- VACATION MANAGEMENT -->
-        <div class="pt-3" :class="[admin_toggled ? 'pt-3' : '']">
+<div class="pt-3" :class="[admin_toggled ? 'pt-3' : '']">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg" :class="[(admin_toggled) ? 'admin_toggled' : '',]">
                     <div class="p-2 flex justify-end items-center space-x-5 text-gray-900 dark:text-gray-100">
@@ -743,11 +739,10 @@ const handleCheckboxChangeHolidaysToBeConfirmed = (vac) => {
                     </div>
 
                     <!-- START TABLE -->
-
-                    <div class="pb-14 flex items-center justify-center text-gray-900 dark:text-gray-100"
+                    <div class="pb-6 flex items-center justify-center text-gray-900 dark:text-gray-100"
                         v-if="selected_month_check">
                         <div v-if="holidays_data.length > 0" class="relative overflow-x-auto mt-5">
-                            <h4 class="header mt-2"> {{ selected_month_name.value }}</h4>
+                            <h4 class="mb-4 text-xl text-gray-300" style="font-family: Abel, sans-serif;"> Lista de vacaciones - {{ selected_month_name }}</h4>
                             <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
                                 <thead
                                     class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
