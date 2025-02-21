@@ -506,7 +506,8 @@ onMounted(async () => {
         <div class="pt-3" :class="[admin_toggled ? 'pt-3' : '']">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg" :class="[(admin_toggled) ? 'admin_toggled' : '',]">
-                    <div class="p-2 flex justify-end items-center space-x-5 text-gray-900 dark:text-gray-100">
+                    <div class="py-2 flex justify-between items-center space-x-5 text-gray-900 dark:text-gray-100 bg-gray-800 px-4">
+                        <div class="text-xl" style="font-family: 'Abel', sans-serif;"> PANEL DE GESTIÓN</div>
                         <div class="flex items-center">
                         <!-- Toggle Switch -->
                         <label class="relative inline-flex items-center cursor-pointer">

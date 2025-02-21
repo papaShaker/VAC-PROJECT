@@ -8,6 +8,7 @@ use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\WeeklyScheduleController;
 use App\Models\User;
+use Illuminate\Database\Capsule\Manager;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -113,6 +114,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/fetch/users', [UserController::class, 'getAllUsers'])
         ->name('fetchUsers');
 
+    Route::get('/fetch/departments', [ManagerController::class, 'getDepartments'])
+        ->name('fetchDepartments');
+
+    Route::get('/fetch/zones', [ManagerController::class, 'getZones'])
+        ->name('fetchZones');
+
+    Route::put('/update/user/{user_id}', [UserController::class, 'updateUser'])
+        ->name('updateUser');
 });
 
 

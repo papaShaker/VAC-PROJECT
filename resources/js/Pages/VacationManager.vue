@@ -29,6 +29,7 @@ const edit_state = reactive({
     selected_department: null,
     selected_zone: null,
 });
+const searchQuery = ref('');
 
 const startEditing = (row_index, table_index) => {
     console.log("StartEditing --> Table index: " + table_index);
@@ -49,7 +50,6 @@ const closeEditing = (row_index, table_index) => {
 const fetchUsers = () => {
     axios.get('/fetch/users').then((response) => {
         users.value = response.data;
-        console.log(response.data);
     }).catch(error => {
         console.error('Error', error);
     });
@@ -63,14 +63,45 @@ const fetchDepartmentsAndZones = async () => {
         ]);
         departments.value = departmentsData.data;
         zones.value = zonesData.data;
+        console.log(departments.value);
+        console.log(zones.value);
     } catch (error) {
         console.error("Ha surgido un error:", error);
     }
 };
 
-const editUser = (user_id) => {
-    
-}
+const filterUsersByName = () => {
+      return users.value.filter(user =>
+        user.name.toLowerCase().includes(searchQuery.value.toLowerCase())// Filtra ignorando mayúsculas/minúsculas
+      );
+};
+
+const saveChanges = async (user_id) => {
+    try {
+        const updatedUser = {
+            department_id: edit_state.selected_department,
+            nonworkingdayzone_id: edit_state.selected_zone,
+        };
+        console.log(updatedUser);
+        await axios.put(`/update/user/${user_id}`, updatedUser); // Replace with your API endpoint
+
+        // Update the user in the table (Optimistic UI update)
+        const userIndex = users.value.findIndex(user => user.id === user_id);
+
+        if (userIndex !== -1) {
+            users.value[userIndex].department_id = edit_state.selected_department;
+            users.value[userIndex].nonworkingdayzone_id = edit_state.selected_zone;
+        }
+
+        closeEditing(edit_state.row, edit_state.table);
+        // Fetch the updated users list
+        fetchUsers();
+    } catch (error) {
+        console.error("Error al guardar los cambios:", error);
+    }
+};
+
+
 
 /* DEPARTMENT FUNCTIONS */
 
@@ -89,7 +120,7 @@ const editUser = (user_id) => {
 
 onMounted(() => {
     fetchUsers();
-    fetchDepartmentsAndZones()
+    fetchDepartmentsAndZones();
 });
 
 </script>
@@ -119,7 +150,7 @@ onMounted(() => {
                                     <label class="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" class="sr-only peer" :checked="users_toggled" @change="users_toggled=!users_toggled, fetchUsers()">
                                             <div
-                                            class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-800 
+                                            class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-700 
                                                     peer-focus:ring-1 peer-focus:ring-blue-100 transition-all">
                                             </div>
                                             <div
@@ -137,6 +168,15 @@ onMounted(() => {
                                         <button>AÑADIR USUARIO</button>
                                     </div> -->
                                     <div class="bg-gray-900">
+                                        <div class="bg-gray-800">
+                                        <!-- Campo de búsqueda -->
+                                        <input
+                                        type="text"
+                                        v-model="searchQuery"
+                                        placeholder="Buscar por nombre..."
+                                        class="w-full p-2 border text-gray-950 border-gray-300 rounded mb-4"
+                                        />
+                                        </div>
                                         <table class="sm:w-[32rem] w-[24rem] text-sm text-left text-gray-500 dark:text-gray-400 bg-slate-600">
                                             <thead>
                                                 <tr class="justify-center item-center">
@@ -148,20 +188,44 @@ onMounted(() => {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <tr v-for="(user, user_index) in users" :key="user.id" class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                                                <tr v-for="(user, user_index) in filterUsersByName()" :key="user.id" class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
                                                     <td class="text-center text-gray-900 dark:text-green-300 py-1">{{ user.id }}</td>
                                                     <td class="text-center text-gray-900 dark:text-gray-100">{{ user.name }}</td>
-                                                    <td class="text-center text-gray-900 dark:text-gray-100">{{ user.department?.name }}</td>
-                                                    <td class="text-center text-gray-900 dark:text-gray-100">{{ user.nonworkingdayzone?.zone }}</td>
+                                                    <!-- DEPARTMENT SELECTOR -->
                                                     <td class="text-center text-gray-900 dark:text-gray-100">
                                                         <template v-if="is_editing && edit_state.row === user_index">
+                                                            <select v-model="edit_state.selected_department" class="text-xs bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded p-1">
+                                                                <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
+                                                            </select>
+                                                        </template>
+                                                        <template v-else>
+                                                            {{ user.department?.name }}
+                                                        </template>
+                                                    </td>
+                                                    <!-- ZONE SELECTOR -->
+                                                    <td class="text-center text-gray-900 dark:text-gray-100">
+                                                        <template v-if="is_editing && edit_state.row === user_index">
+                                                            <select v-model="edit_state.selected_zone" class="text-xs bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded p-1">
+                                                                <option v-for="zone in zones" :key="zone.id" :value="zone.id">{{ zone.zone }}</option>
+                                                            </select>
+                                                        </template>
+                                                        <template v-else>
+                                                            {{ user.nonworkingdayzone?.zone }}
+                                                        </template>
+                                                    </td>
+
+                                                    <td class="text-center text-gray-900 dark:text-gray-100">
+                                                        <template v-if="is_editing && edit_state.row === user_index">
+                                                            <button @click="saveChanges(user.id)">
+                                                                <i class="mx-1 text-lg text-green-400 fa-solid fa-check"></i>
+                                                            </button>
                                                             <button @click="closeEditing(user_index)">
-                                                                <i class="ml-2 text-lg text-red-400 fa-solid fa-xmark"></i>
+                                                                <i class="mx-1 text-lg text-red-400 fa-solid fa-xmark"></i>
                                                             </button>
                                                         </template>
                                                         <template v-else>
                                                             <button @click="startEditing(user_index)">
-                                                                <i class="ml-2 text-lg text-yellow-200 fa-regular fa-pen-to-square"></i>
+                                                                <i class="space-x-1 sm:ml-1 text-lg text-yellow-200 fa-regular fa-pen-to-square"></i>
                                                             </button>
                                                         </template>
                                                     </td>
@@ -194,7 +258,7 @@ onMounted(() => {
                                     <label class="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" class="sr-only peer" :checked="departments_toggled" @change="departments_toggled=!departments_toggled">
                                             <div
-                                            class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-800 
+                                            class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-700 
                                                     peer-focus:ring-1 peer-focus:ring-blue-100 transition-all">
                                             </div>
                                             <div
@@ -236,7 +300,7 @@ onMounted(() => {
                                     <label class="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" class="sr-only peer" :checked="contracts_toggled" @change="contracts_toggled=!contracts_toggled">
                                             <div
-                                            class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-800 
+                                            class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-700 
                                                     peer-focus:ring-1 peer-focus:ring-blue-100 transition-all">
                                             </div>
                                             <div
@@ -276,9 +340,9 @@ onMounted(() => {
                                     <div class="flex items-center">
                                     <!-- Toggle Switch -->
                                     <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" class="sr-only peer" :checked="contracts_togcontract_types_toggledgled" @change="contract_types_toggled=!contract_types_toggled">
+                                            <input type="checkbox" class="sr-only peer" :checked="contract_types_toggled" @change="contract_types_toggled=!contract_types_toggled">
                                             <div
-                                            class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-800 
+                                            class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-700 
                                                     peer-focus:ring-1 peer-focus:ring-blue-100 transition-all">
                                             </div>
                                             <div
@@ -320,7 +384,7 @@ onMounted(() => {
                                     <label class="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" class="sr-only peer" :checked="zones_toggled" @change="zones_toggled=!zones_toggled">
                                             <div
-                                            class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-800 
+                                            class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-700 
                                                     peer-focus:ring-1 peer-focus:ring-blue-100 transition-all">
                                             </div>
                                             <div
@@ -362,7 +426,7 @@ onMounted(() => {
                                     <label class="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" class="sr-only peer" :checked="non_working_days_toggled" @change="non_working_days_toggled=!non_working_days_toggled">
                                             <div
-                                            class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-800 
+                                            class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-700 
                                                     peer-focus:ring-1 peer-focus:ring-blue-100 transition-all">
                                             </div>
                                             <div
@@ -404,7 +468,7 @@ onMounted(() => {
                                     <label class="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" class="sr-only peer" :checked="extra_days_toggled" @change="extra_days_toggled=!extra_days_toggled">
                                             <div
-                                            class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-800 
+                                            class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-700 
                                                     peer-focus:ring-1 peer-focus:ring-blue-100 transition-all">
                                             </div>
                                             <div
@@ -446,7 +510,7 @@ onMounted(() => {
                                     <label class="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" class="sr-only peer" :checked="extra_day_types_toggled" @change="extra_day_types_toggled=!extra_day_types_toggled">
                                             <div
-                                            class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-800 
+                                            class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-700 
                                                     peer-focus:ring-1 peer-focus:ring-blue-100 transition-all">
                                             </div>
                                             <div

@@ -58,7 +58,8 @@ class ManagerController extends Controller
         return $departments;
     }
 
-    public function getNonWorkingDayZones(){
+    public function getZones(){
         $zones = NonWorkingDayZone::select('id', 'zone')->get();
+        return $zones;
     }
 }

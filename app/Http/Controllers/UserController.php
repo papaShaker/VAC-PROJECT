@@ -36,7 +36,22 @@ class UserController extends Controller
             ])
             ->orderBy('name')
             ->get();
-            
+
         return $users;
+    }
+
+    public function updateUser(int $id, Request $request)
+    {
+        $user = User::find($id);
+        $user->department = $request->department_id;
+        $user->holiday_zone = $request->zone_id;
+        $user->save();
+
+        if (is_null($id) || is_null($request)) { // + is_null(rotation)
+            
+            return response()->json(['status' => 'Error', 'message' => 'Faltan parámetros.'], 400);
+        }
+
+        return response()->json(['status' => 'Success', 'message' => 'El usuario ha sido actualizado con exito.'], 200);
     }
 }

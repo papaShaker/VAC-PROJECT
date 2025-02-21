@@ -365,13 +365,14 @@ const handleCheckboxChangeHolidaysToBeConfirmed = (vac) => {
 <div class="pt-3" :class="[admin_toggled ? 'pt-3' : '']">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg" :class="[(admin_toggled) ? 'admin_toggled' : '',]">
-                    <div class="p-2 flex justify-end items-center space-x-5 text-gray-900 dark:text-gray-100">
+                    <div class="py-2 flex justify-between items-center space-x-5 text-gray-900 dark:text-gray-100 bg-gray-800 px-4">
+                        <div class="text-xl " style="font-family: 'Abel', sans-serif;"> PANEL DE GESTIÓN</div>
                         <div class="flex items-center">
                         <!-- Toggle Switch -->
                         <label class="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" class="sr-only peer" :checked="admin_toggled" @change="admin_toggled = !admin_toggled, getHolidaysToBeConfirmed()">
                                 <div
-                                class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-500 
+                                class="w-12 h-6 bg-gray-300 rounded-full border-2 ring-white peer-checked:bg-gray-700 
                                         peer-focus:ring-1 peer-focus:ring-blue-100 transition-all">
                                 </div>
                                 <div
@@ -390,7 +391,7 @@ const handleCheckboxChangeHolidaysToBeConfirmed = (vac) => {
                     <div class="relative overflow-x-auto my-5"
                         v-if="loaded_to_be_confirmed_data">
                         <table class="border-collapse border border-gray-100 text-sm text-left rtl:text-right text-gray-100 dark:text-gray-400">
-                            <thead class="text-xs border border-gray-100 text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                            <thead class="sm:w-[32rem] w-[24rem] text-xs border border-gray-100 text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                                 <tr>
                                     <th class="border border-gray-100">Usuario</th>
                                     <th class="border border-gray-100">Contrato</th>
