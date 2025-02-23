@@ -44,7 +44,7 @@ class UserController extends Controller
     {
         $user = User::find($id);
         $user->department = $request->department_id;
-        $user->holiday_zone = $request->zone_id;
+        $user->holiday_zone = $request->nonworkingdayzone_id;
         $user->save();
 
         if (is_null($id) || is_null($request)) { // + is_null(rotation)

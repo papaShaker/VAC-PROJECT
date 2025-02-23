@@ -22,20 +22,30 @@ const extra_day_types_toggled = ref(false);
 const users = ref([]);
 const departments = ref([]); // Store fetched departments
 const zones = ref([]); // Store fetched zones
+const max_holiday_user_count = [0,1,2,3,4,5];
 const is_editing = ref(false);
 const edit_state = reactive({
     table: null,
     row: null,
     selected_department: null,
     selected_zone: null,
+    selected_department_name: null,
+    selected_department_users_same_day_holidays: null,
+    selected_department_holidays_per_month: null,
 });
 const searchQuery = ref('');
+const searchQueryDepartments = ref('');
 
 const startEditing = (row_index, table_index) => {
     console.log("StartEditing --> Table index: " + table_index);
     is_editing.value = true;
     edit_state.row = row_index;
     edit_state.table = table_index;
+
+    edit_state.selected_department = users.value[row_index]?.department?.id || null;
+    edit_state.selected_zone = users.value[row_index]?.nonworkingdayzone?.id || null;
+    edit_state.selected_department_name = departments.value[row_index]?.name || null;
+    edit_state.selected_department_users_same_day_holidays = departments.value[row_index]?.selected_department_users_same_day_holidays || null;
 };
 
 const closeEditing = (row_index, table_index) => {
@@ -68,12 +78,6 @@ const fetchDepartmentsAndZones = async () => {
     } catch (error) {
         console.error("Ha surgido un error:", error);
     }
-};
-
-const filterUsersByName = () => {
-      return users.value.filter(user =>
-        user.name.toLowerCase().includes(searchQuery.value.toLowerCase())// Filtra ignorando mayúsculas/minúsculas
-      );
 };
 
 const saveChanges = async (user_id) => {
@@ -117,6 +121,33 @@ const saveChanges = async (user_id) => {
 
 /* EXTRA DAY TYPE FUNCTIONS */ 
 
+
+/* VALIDATIONS */
+
+const validateInput = (event) => {
+    const target = event.target;
+    const value = parseInt(target.value, 10) || 0;
+    const validatedValue = Math.min(5, Math.max(0, value));
+
+    edit_state.selected_department_users_same_day_holidays = validatedValue;
+    target.value = validatedValue;
+};
+
+/* FILTERS */
+
+const filterUsersByName = () => {
+      return users.value.filter(user =>
+        user.name.toLowerCase().includes(searchQuery.value.toLowerCase())// Filtra ignorando mayúsculas/minúsculas
+      );
+};
+
+const filterDepartmentsByName = () => {
+      return departments.value.filter(department =>
+        department.name.toLowerCase().includes(searchQueryDepartments.value.toLowerCase())// Filtra ignorando mayúsculas/minúsculas
+      );
+};
+
+/* ON MOUNTED */
 
 onMounted(() => {
     fetchUsers();
@@ -174,10 +205,10 @@ onMounted(() => {
                                         type="text"
                                         v-model="searchQuery"
                                         placeholder="Buscar por nombre..."
-                                        class="w-full p-2 border text-gray-950 border-gray-300 rounded mb-4"
+                                        class="w-full p-1 border text-gray-950 border-gray-300 rounded mb-4"
                                         />
                                         </div>
-                                        <table class="sm:w-[32rem] w-[24rem] text-sm text-left text-gray-500 dark:text-gray-400 bg-slate-600">
+                                        <table class="sm:w-[32rem] w-[24rem] sm:text-md text-sm text-left text-gray-500 dark:text-gray-400 bg-slate-600">
                                             <thead>
                                                 <tr class="justify-center item-center">
                                                     <th class="text-center text-gray-900 dark:text-gray-100">ID</th>
@@ -272,8 +303,76 @@ onMounted(() => {
                                 <div v-if="departments_toggled" class="p-2 pb-8 bg-gray-800 grid justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
 
                                     <!-- SLOT -->
-                                    <div class="sm:flex sm:justify-between items-center grid">
-                                        SLOT
+                                    <div class="bg-gray-800">
+                                        <div class="bg-gray-800">
+                                            <!-- Campo de búsqueda -->
+                                            <input
+                                            type="text"
+                                            v-model="searchQueryDepartments"
+                                            placeholder="Buscar por departamento..."
+                                            class="w-full p-1 border text-gray-950 border-gray-300 rounded"
+                                            />
+                                        </div>
+                                        <div class="flex justify-end items-center space-x-5 text-gray-900 dark:text-gray-100">
+                                            <button class="text-md border border-gray-700 text-green-400 rounded p-1 my-2"><i class="fa-solid fa-plus text-md text-green-400"></i> AÑADIR DEPARTAMENTO</button>
+                                        </div>
+                                        <div class="sm:w-[32rem] w-[24rem] sm:text-md text-sm text-left text-gray-500 dark:text-gray-400">
+                                            <form>
+                                            </form>
+                                        </div>
+                                        <table class="sm:w-[32rem] w-[24rem] sm:text-md text-sm text-left text-gray-500 dark:text-gray-400 bg-slate-600">
+                                            <thead>
+                                                <tr class="justify-center item-center">
+                                                    <th class="text-center text-gray-900 dark:text-gray-100">ID</th>
+                                                    <th class="text-center text-gray-900 dark:text-gray-100">DEPARTAMENTO</th>
+                                                    <th class="text-center text-gray-900 dark:text-gray-100">MAX VAC/DÍA</th>
+                                                    <th class="text-center text-gray-900 dark:text-gray-100">VAC/MES</th>
+                                                    <th class="text-center text-gray-900 dark:text-gray-100">EDITAR</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr v-for="(dep, dep_index) in filterDepartmentsByName()" :key="dep.id" class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                                                    <td class="text-center text-gray-900 dark:text-green-300 py-1"> {{ dep.id }} </td>
+                                                    <td class="text-center text-gray-900 dark:text-gray-100">
+                                                        <template v-if="is_editing && edit_state.row === dep_index">
+                                                            <select v-model="edit_state.selected_department_name" class="text-xs bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded p-1">
+                                                                <option v-for="dept in departments" :key="dept.name" :value="dept.name">{{ dept.name }}</option>
+                                                            </select>
+                                                        </template>
+                                                        <template v-else>
+                                                            {{ dep.name  }}
+                                                        </template>
+                                                    </td>
+                                                    <!-- DEPARTMENT SELECTOR -->
+                                                    <td class="text-center text-gray-900 dark:text-gray-100">
+                                                        <template v-if="is_editing && edit_state.row === dep_index">
+                                                            <input type="number" min="0" max="5" v-model="edit_state.selected_department_users_same_day_holidays" @input="validateInput" class="w-12 text-xs text-left bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded p-1">
+                                                        </template>
+                                                        <template v-else>
+                                                            {{ dep?.users_same_day_holidays }}
+                                                        </template>
+                                                    </td>
+                                                    <!-- ZONE SELECTOR -->
+                                                    <td class="text-center text-gray-900 dark:text-gray-100"> {{ dep.holidays_per_month }} </td>
+
+                                                    <td class="text-center text-gray-900 dark:text-gray-100">
+                                                        <template v-if="is_editing && edit_state.row === dep_index">
+                                                            <button @click="saveChanges(dep.id)">
+                                                                <i class="mx-1 text-lg text-green-400 fa-solid fa-check"></i>
+                                                            </button>
+                                                            <button @click="closeEditing(dep_index)">
+                                                                <i class="mx-1 text-lg text-red-400 fa-solid fa-xmark"></i>
+                                                            </button>
+                                                        </template>
+                                                        <template v-else>
+                                                            <button @click="startEditing(dep_index)">
+                                                                <i class="space-x-1 sm:ml-1 text-lg text-yellow-200 fa-regular fa-pen-to-square"></i>
+                                                            </button>
+                                                        </template>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
                                     </div>
                                     <!-- END SLOT -->
 

@@ -54,7 +54,7 @@ class ManagerController extends Controller
     }
 
     public function getDepartments(){
-        $departments = Department::select('id', 'name')->get();
+        $departments = Department::select('id', 'name', 'users_same_day_holidays', 'holidays_per_month')->get();
         return $departments;
     }
 
