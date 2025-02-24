@@ -6,10 +6,12 @@ import { ref, reactive, onBeforeMount, onMounted, computed, watch } from 'vue';
 import axios from 'axios';
 import { toast } from 'vue3-toastify';
 import ModalInfoHolidays from '@/Components/ModalInfoHolidays.vue';
+import { useUserStore } from '@/stores/userStore';
 
 const props = defineProps({
     departments: Array,
 });
+const userStore = useUserStore();
 
 const jobRanges = ref([]);
 const calendar_data = reactive({});
@@ -76,6 +78,16 @@ const toast_options = {
         border: '1px solid #9CA3AF'
     }
 }
+
+/* DEPARTMENT SELECTOR IF ROLE */
+const ifNoPermissionDepartment = async () => {
+    if (!userStore.hasPermission('view department selector') || !userStore.hasRole('rrhh')) {
+        selected_department_id.value = userStore.user.department;
+        await fetchDepartmentNameById(selected_department_id.value);
+        console.log(selected_department_id);
+    }
+};
+
 /* HOLIDAYS TO BE CONFIRMED LIST END */
 
 const fetchJobRanges = () => {
@@ -94,10 +106,21 @@ const fetchUsers = (department_id) => {
     })
 };
 
+const fetchRolesAndPermissionsForUser = () => {
+    axios.get(`/roles/permissions`).then((response) => {
+        console.log(response.data);
+    }).catch(error => {
+        console.error('Error', error);
+    })
+};
+
 const fetchDepartmentNameById = async (department_id) => {
     while (holidays_data.length > 0) {
         holidays_data.pop();
     }
+    Object.keys(calendar_data).forEach(key => delete calendar_data[key]);
+    selected_month.value = '';
+    selected_month_name.value = '';
     console.log("entra");
     try {
         await axios.get('/api/department_name/' + department_id)
@@ -237,7 +260,8 @@ onBeforeMount(async () => {
     await generateMonthOptions();
 })
 
-onMounted(async () => {
+onMounted(() => {
+    ifNoPermissionDepartment();
 });
 
 /* VACATION MANAGER FUNCTIONS */
@@ -365,7 +389,7 @@ const handleCheckboxChangeHolidaysToBeConfirmed = (vac) => {
 <div class="pt-3" :class="[admin_toggled ? 'pt-3' : '']">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg" :class="[(admin_toggled) ? 'admin_toggled' : '',]">
-                    <div class="py-2 flex justify-between items-center space-x-5 text-gray-900 dark:text-gray-100 bg-gray-800 px-4">
+                    <div v-if="userStore.hasPermission('view pending vacations table') || userStore.hasRole('department_boss')" class="py-2 flex justify-between items-center space-x-5 text-gray-900 dark:text-gray-100 bg-gray-800 px-4">
                         <div class="text-xl " style="font-family: 'Abel', sans-serif;"> PANEL DE GESTIÓN</div>
                         <div class="flex items-center">
                         <!-- Toggle Switch -->
@@ -605,18 +629,27 @@ const handleCheckboxChangeHolidaysToBeConfirmed = (vac) => {
         <div class="pb-6 pt-3"> <!-- Container-fluid -->
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-2 pt-16 pb-8 grid items-center text-gray-900 dark:text-gray-100 sm:flex sm:justify-between sm:px-24 px-6">
-                        <div class="sm:flex sm:justify-center sm:ml-5 grid items-center space-x-5 items_spacing_y w-[350px]">
+                    <h1 class="mt-12 text-center sm:text-2xl text-xl text-gray-700 font-semibol dark:text-white" style="font-family: 'Abel', sans-serif;">Resumen de vacaciones <span v-if="selected_department_name">- {{ selected_department_name }}</span> <span v-if="selected_month_name"> - {{ selected_month_name }}</span></h1>
+                    <div class="p-2 sm:pt-12 pt-6 pb-8 grid items-center text-gray-900 dark:text-gray-100 sm:flex sm:justify-between sm:px-56 px-6">
+                        <div  class="sm:flex sm:justify-center sm:ml-5 grid items-center space-x-5 items_spacing_y w-[350px]">
                             <h4 class="flex ml-5">Departamento:</h4>
                             <form class="flex max-w-sm mx-auto items-center" @submit.prevent="">
                                 <label for="departments" class="text-xl font-medium text-gray-900 dark:text-white">
                                 </label>
-                                <select id="departments" v-model="selected_department_id"
+                                <select v-if="userStore.hasPermission('view department selector') || userStore.hasRole('rrhh')" id="departments" v-model="selected_department_id"
                                     @change="fetchDepartmentNameById(selected_department_id);"
                                     class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
                                     <option selected disabled value="">Selecciona un departamento</option>
                                     <option v-for="department in departments" :key="department.id" :value="department.id">
                                         {{ department.name }}
+                                    </option>
+                                </select>
+                                <select v-else
+                                    class="sm:max-w-[145px] max-w-[350px] sm:min-w-36 min-w-24 flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                    id="departments" v-model="selected_department_id"
+                                    @change="fetchDepartmentNameById(selected_department_id);">
+                                    <option selected disabled :key="userStore.user.department" :value="userStore.user.department">
+                                        {{ selected_department_name }}
                                     </option>
                                 </select>
                             </form>
@@ -795,6 +828,9 @@ const handleCheckboxChangeHolidaysToBeConfirmed = (vac) => {
 
                 </div>
             </div>
+            <div><button @click="fetchRolesAndPermissionsForUser()">
+                    <p class="text-green-200">Send to check roles and permissions.</p>
+                </button></div>
             <div><button @click="fetchUsers(selected_department_id)">
                     <p class="text-green-200">Send to check users.</p>
                 </button></div>

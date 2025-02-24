@@ -7,6 +7,9 @@ import moment from 'moment';
 import { DateTime } from 'luxon';
 import { toast } from 'vue3-toastify';
 import ModalSchedules from '@/Components/ModalSchedules.vue';
+import { useUserStore } from '@/stores/userStore';
+
+const userStore = useUserStore();
 
 const props = defineProps({
     departments: Array,
@@ -51,6 +54,24 @@ const edit_state = reactive({
 })
 const showAddScheduleButton = ref(false);
 const showAddScheduleButtonAfterFail = ref(true);
+
+const ifNoPermissionDepartment = async () => {
+    if (!userStore.hasPermission('edit schedules') || !userStore.hasRole('rrhh')) {
+        selected_department_id_admin.value = userStore.user.department;
+        await fetchDepartmentNameById(selected_department_id_admin.value);
+    }
+    if(!userStore.hasRole('super_user')) {
+        selected_department_id.value = userStore.user.department;
+        await fetchDepartmentNameById(selected_department_id.value);
+    }
+/*     if(!userStore.hasRole('super_user') && !userStore.hasRole('department_boss')) {
+        selected_month.value = selected_month_index.value;
+    } */
+}
+
+const getWeeklySchedulesForEmployee = async () => {
+
+};
 
 const modal_schedules = reactive({
     department_id: selected_department_id,
@@ -245,8 +266,39 @@ function formatDateToDDMMYYYY(dateString) {
     return `${day}-${month}-${year}`;
 }
 
+
+const checkTodayMatch = (date) => {
+    let today = moment().format('DD-MM-YYYY');
+    return today === date;
+}
+
+const fetchWeekNumbersByMonth = async (year, month) => {
+    await axios.get('/api/week_numbers_by_month/' + year + '/' + month)
+        .then((response) => {
+            week_numbers_by_month.length = 0; // Clear the existing data (optional)
+            week_numbers_by_month.push(...response.data); // Add new data to the reactive array
+            console.log("entra getWeekNumbersForMonth");
+            console.log(week_numbers_by_month);
+        })
+}
+    
+const fetchDepartmentNameById = async (department_id) => {
+    console.log(department_id);
+    try {
+        await axios.get('/api/department_name/' + department_id)
+            .then((response) => {
+                selected_department_name.value = response.data;
+                console.log(selected_department_name.value);
+            });
+    } catch (error) {
+
+    }
+};
+
 const fetchWeekDates = async (year, week_number) => { //Dates for the table thead
     loading.value = true;
+    console.log('FETCH WEEK DATES:');
+    console.log(year, week_number);
     await axios.get('/api/week_dates/' + year + '/' + week_number)
         .then((response) => {
             week_date_range_dates.length = 0; // Clear the existing data (optional)
@@ -258,6 +310,8 @@ const fetchWeekDates = async (year, week_number) => { //Dates for the table thea
 
 // Example of a function to get week numbers and their date ranges
 const getWeeksForMonth = (year, month) => {
+    console.log("-> entra getWeeksForMonth" + month);
+    console.log("-> entra getWeeksForMonth" + year);
     week_dates_by_month.length = 0;
     let startOfMonth = DateTime.fromObject({ year, month, day: 1 });
 
@@ -289,34 +343,6 @@ const getWeeksForMonth = (year, month) => {
     console.log(week_dates_by_month);
 };
 
-const checkTodayMatch = (date) => {
-    let today = moment().format('DD-MM-YYYY');
-    return today === date;
-}
-
-const fetchWeekNumbersByMonth = async (year, month) => {
-    await axios.get('/api/week_numbers_by_month/' + year + '/' + month)
-        .then((response) => {
-            week_numbers_by_month.length = 0; // Clear the existing data (optional)
-            week_numbers_by_month.push(...response.data); // Add new data to the reactive array
-            console.log("entra getWeekNumbersForMonth");
-            console.log(week_numbers_by_month);
-        })
-}
-    
-const fetchDepartmentNameById = async (department_id) => {
-    console.log(department_id);
-    try {
-        await axios.get('/api/department_name/' + department_id)
-            .then((response) => {
-                selected_department_name.value = response.data;
-                console.log(selected_department_name.value);
-            });
-    } catch (error) {
-
-    }
-};
-
 const generateMonthOptions = async () => {
     let now = new Date();
     let currentYear = now.getFullYear();
@@ -336,7 +362,6 @@ const generateMonthOptions = async () => {
         label: `Enero ${currentYear + 1}`,
         value: `${currentYear + 1}-01`
     });
-
 };
 
 const selected_month_label = () => {
@@ -352,15 +377,50 @@ const selected_month_label = () => {
     }
 };
 
+const select_current_month = () => {
+    console.log("entra select_current_month");
+
+    // Ensure months is not empty
+    if (!months.length) {
+        console.error("Months array is empty. Make sure generateMonthOptions is called before this function.");
+        return;
+    }
+    let now = new Date();
+    let currentYear = now.getFullYear();
+    let currentMonth = now.getMonth() + 1;
+    let selectedMonth = months.find(month => month.value === `${currentYear}-${String(currentMonth).padStart(2, '0')}`);
+    selected_month_name.value = selectedMonth.label; // Set the label if found
+    selected_month_index.value = selectedMonth.month;
+    /* selected_month.value = selected_month_index.value; */
+    getWeeksForMonth(currentYear, currentMonth);
+    console.log("ROCK:", week_dates_by_month);
+}
+
 // Function to get the year
 function getSelectedYear() {
     console.log("SELECTED YEAR: " + selected_month.value.split('-')[0]);
     return selected_month.value.split('-')[0]; // Splits by "-" and returns the first part (the year)
 }
 
+function getSelectedYearEmployee() {
+    let now = new Date();
+    let currentYear = now.getFullYear();
+    console.log("SELECTED YEAR EMPLOYEE: " + currentYear);
+    return currentYear; // Splits by "-" and returns the first part (the year)
+}
+
 // Function to get the month
 function getSelectedMonth() {
+    console.log("entra getSelectedMonth");
     let month = parseInt(selected_month.value.split('-')[1], 10);
+    console.log("MONTH: " + month);
+    return month; // Splits by "-" and returns the second part (the month)
+}
+
+function getSelectedMonthEmployee() {
+    console.log("ENTRALALALA");
+    console.log(selected_month);
+    let month = selected_month.value;
     console.log("MONTH: " + month);
     return month; // Splits by "-" and returns the second part (the month)
 }
@@ -485,9 +545,12 @@ onBeforeMount(async () => {
     getWeekDateRange(today);
     admin_toggled.value = false;
     await generateMonthOptions();
+    console.log("Calling select_current_month...");
+    select_current_month();
 })
 
-onMounted(async () => {
+onMounted(() => {
+    ifNoPermissionDepartment();
 });
 
 
@@ -506,8 +569,9 @@ onMounted(async () => {
         <div class="pt-3" :class="[admin_toggled ? 'pt-3' : '']">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-sm sm:rounded-lg" :class="[(admin_toggled) ? 'admin_toggled' : '',]">
-                    <div class="py-2 flex justify-between items-center space-x-5 text-gray-900 dark:text-gray-100 bg-gray-800 px-4">
-                        <div class="text-xl" style="font-family: 'Abel', sans-serif;"> PANEL DE GESTIÓN</div>
+                    <div v-if="userStore.hasPermission('edit schedules') || userStore.hasPermission('view schedule templates')" class="py-2 flex justify-between items-center space-x-5 text-gray-900 dark:text-gray-100 bg-gray-800 px-4">
+                        <div v-if="!userStore.hasPermission('eliminate template') && !userStore.hasPermission('add temlate')" class="text-xl" style="font-family: 'Abel', sans-serif;"> VER PLANTILLAS</div>
+                        <div v-else class="text-xl" style="font-family: 'Abel', sans-serif;"> PANEL DE GESTIÓN</div>
                         <div class="flex items-center">
                         <!-- Toggle Switch -->
                         <label class="relative inline-flex items-center cursor-pointer">
@@ -529,13 +593,21 @@ onMounted(async () => {
                             <!-- SCHEDULES FORM -->
                             <div class="sm:flex sm:justify-center sm:ml-5 grid items-center space-x-5 items_spacing_y w-[350px]"><!-- Dep -->
                                 <h4 class="flex ml-5">Departamento:</h4>
-                                <select id="departments" v-model="selected_department_id_admin"
+                                <select v-if="userStore.hasRole('super_user')" id="departments" v-model="selected_department_id_admin"
                                     @change="fetchDepartmentNameById(selected_department_id_admin), check_button_when_add_schedule_is_open = false;"
                                     class="sm:max-w-[145px] max-w-[350px] min-w-24 flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
                                     <option selected disabled value="">Selecciona un departamento</option>
                                     <option v-for="department in departments" :key="department.id"
                                         :value="department.id">
                                         {{ capitalize(department.name) }}
+                                    </option>
+                                </select>
+                                <select v-else
+                                class="sm:max-w-[145px] max-w-[350px] min-w-24 flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                id="departments" v-model="selected_department_id_admin"
+                                @change="fetchDepartmentNameById(selected_department_id_admin), check_button_when_add_schedule_is_open = false;">
+                                    <option selected disabled :key="userStore.user.department" :value="userStore.user.department">
+                                        {{ selected_department_name }}
                                     </option>
                                 </select>
                             </div>
@@ -570,18 +642,18 @@ onMounted(async () => {
                                 </tbody>
                             </table>
                         </div>
-                        <div v-if="existing_template_data.length > 0" class="sm:flex sm:justify-between items-center grid pr-9 sm:pr-4">
+                        <div v-if="existing_template_data.length > 0 && userStore.hasPermission('eliminate template')" class="sm:flex sm:justify-between items-center grid pr-9 sm:pr-4">
                             <button @click="removeScheduleTemplate(selected_department_id_admin, users_available), checkForScheduleTemplates(selected_department_id_admin, users_available);" class="sm:ml-5 text-white text-lg rounded-lg bg-red-500 hover:bg-red-500/80 p-1 my-2 sm:w-full"> ELIMINAR PLANTILLA </button>
                         </div>
                         <div v-if="existing_template_error.status && showAddScheduleButton && showAddScheduleButtonAfterFail" class="sm:flex sm:justify-center items-center flex-col space-y-2 pr-9">
 
                                 <p class="text-red-400 m-12"> {{ existing_template_error.message }}</p>
-                                <button @click="form.department_id = selected_department_id_admin, form.users_available = users_available, initializeForm(), showAddScheduleButton = false, check_button_when_add_schedule_is_open = true;" class="flex items-center w-full justify-center  sm:ml-0 sm:mt-0 bg-green-600/70 hover:bg-green-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg"> AÑADIR PLANTILLA </button>
+                                <button v-if="userStore.hasPermission('add template')" @click="form.department_id = selected_department_id_admin, form.users_available = users_available, initializeForm(), showAddScheduleButton = false, check_button_when_add_schedule_is_open = true;" class="flex items-center w-full justify-center  sm:ml-0 sm:mt-0 bg-green-600/70 hover:bg-green-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg"> AÑADIR PLANTILLA </button>
 
                         </div>
                         <div v-if="form.users_schedules.length > 0" class="sm:flex sm:justify-center items-center flex-col space-y-2 pr-9">
 
-                                <button v-if="form.users_schedules.length > 0" @click="addScheduleTemplate(), showAddScheduleButtonAfterFail = false" class="flex items-center w-full justify-center  sm:ml-0 sm:mt-0 bg-green-600/70 hover:bg-green-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg">
+                                <button v-if="form.users_schedules.length > 0 && userStore.hasPermission('add schedule')" @click="addScheduleTemplate(), showAddScheduleButtonAfterFail = false" class="flex items-center w-full justify-center  sm:ml-0 sm:mt-0 bg-green-600/70 hover:bg-green-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg">
                                     GUARDAR
                                 </button>
                                 <button v-if="form.users_schedules.length > 0" @click="form.reset(), check_button_when_add_schedule_is_open = false" class="flex items-center w-full justify-center sm:ml-0 sm:mt-0 bg-red-600/70 hover:bg-red-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg">
@@ -622,13 +694,14 @@ onMounted(async () => {
         <div class="pb-6 pt-3" :class="[admin_toggled ? 'pt-6 pb-6' : '']">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                    <h1 class="mt-5 text-center text-2xl text-gray-700 font-semibol dark:text-white" style="font-family: 'Abel', sans-serif;">Horarios  <span v-if="selected_department_name"> - {{ selected_department_name }}</span> <span v-if="selected_month_name"> - {{ selected_month_name }}</span> </h1>
                     <div class="p-2 pt-16 pb-8 grid items-center text-gray-900 dark:text-gray-100 sm:flex sm:justify-between px-6">
                         <div class="sm:flex sm:justify-center sm:ml-5 grid items-center space-x-5 items_spacing_y w-[350px]"><!-- Dep -->
                             <h4 class="flex ml-5">Departamento:</h4>
                             <form class="flex max-w-sm mx-auto items-center" @submit.prevent="">
                                 <label for="departments" class="text-xl font-medium text-gray-900 dark:text-white">
                                 </label>
-                                <select id="departments" v-model="selected_department_id"
+                                <select v-if="userStore.hasRole('super_user')" id="departments" v-model="selected_department_id"
                                     @change="fetchDepartmentNameById(selected_department_id);"
                                     class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
                                     <option selected disabled value="">Selecciona un departamento</option>
@@ -637,14 +710,21 @@ onMounted(async () => {
                                         {{ capitalize(department.name) }}
                                     </option>
                                 </select>
+                                <select v-else id="departments" v-model="selected_department_id"
+                                    @input="fetchDepartmentNameById(selected_department_id);"
+                                    class="sm:max-w-[145px] max-w-[350px] sm:min-w-36 min-w-24 flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                                    <option selected disabled :key="userStore.user.department" :value="userStore.user.department">
+                                        {{ capitalize(selected_department_name) }}
+                                    </option>
+                                </select>
                             </form>
                         </div>
                         <div class="sm:flex sm:justify-center sm:ml-5 grid items-center space-x-5 items_spacing_y w-[350px]">
                             <h4 class="flex ml-5">Mes:</h4>
                             <form class="flex max-w-sm mx-auto items-center">
                                 <label for="month"></label>
-                                <select
-                                class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                <select v-if="userStore.hasRole('super_user') || userStore.hasRole('department_boss')"
+                                class="sm:max-w-[145px] max-w-[350px] sm:min-w-36 min-w-24 flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                                     :disabled="!selected_department_id" v-model="selected_month"
                                     @change="selected_month_label(); getWeeksForMonth(getSelectedYear(selected_month), getSelectedMonth(selected_month)); getWeeklySchedulesForMonth(selected_department_id, getSelectedYear(selected_month), getSelectedMonth(selected_month)); change_selected_week_to_all();">
                                     <option value="" disabled selected>Selecciona un mes</option>
@@ -653,16 +733,36 @@ onMounted(async () => {
                                         {{ month.label }}
                                     </option>
                                 </select>
+                                <select v-else
+                                class="sm:max-w-[145px] max-w-[350px] sm:min-w-36 min-w-24 flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                    :disabled="!selected_department_id" v-model="selected_month"
+                                    @change="select_current_month(); getWeeksForMonth(getSelectedYearEmployee(selected_month), getSelectedMonthEmployee(selected_month)); getWeeklySchedulesForMonth(selected_department_id, getSelectedYearEmployee(selected_month), getSelectedMonthEmployee(selected_month));">
+                                    <!-- Placeholder option -->
+                                    <option value="" disabled selected>Selecciona un mes</option>
+                                    <option :key="selected_month_index" :value="selected_month_index">
+                                        {{ selected_month_name }}
+                                    </option>
+                                </select>
                             </form>
                         </div>
                         <div class="sm:flex sm:justify-center sm:ml-5 grid items-center space-x-5 items_spacing_y w-[350px]">
                             <h4 class="flex ml-5">Semana:</h4>
                             <form class="flex max-w-sm mx-auto items-center">
                                 <label for="month"></label>
-                                <select
+                                <select v-if="userStore.hasRole('super_user') || userStore.hasRole('department_boss')"
                                     class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                                     :disabled="!selected_month" v-model="selected_week"
                                     @change="getWeeklySchedule(selected_week.weekNumber, selected_department_id, getSelectedYear(selected_month)); fetchWeekDates(getSelectedYear(selected_month), selected_week.weekNumber);">
+                                    <option value="all" :disabled="!selected_week" selected>Todas las semanas del mes</option>
+                                    <!-- Placeholder option -->
+                                    <option v-for="week in week_dates_by_month" :key="week" :value="week">
+                                        Semana[{{ week.weekNumber }}] {{ week.startDate }} a {{ week.endDate }}
+                                    </option>
+                                </select>
+                                <select v-else
+                                    class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                    :disabled="!selected_month" v-model="selected_week"
+                                    @change="getWeeklySchedule(selected_week.weekNumber, selected_department_id, getSelectedYearEmployee(selected_month)); fetchWeekDates(getSelectedYearEmployee(selected_month), selected_week.weekNumber);">
                                     <option value="all" :disabled="!selected_week" selected>Todas las semanas del mes</option>
                                     <!-- Placeholder option -->
                                     <option v-for="week in week_dates_by_month" :key="week" :value="week">
@@ -715,9 +815,9 @@ onMounted(async () => {
                             <!-- START MULTI TABLES -->
                 <div v-if="(selected_month && !selected_week) || (selected_month && selected_week === 'all')" class="pb-14 grid items-center justify-center text-gray-900 dark:text-gray-100">
                     <div v-for="(weekly_schedule, weekly_schedule_index) in weekly_schedules_for_month" :key="weekly_schedule_index" class="relative overflow-x-auto my-5">
-                        <h4 v-if="weekly_schedule.schedule_data.schedules.length > 0" class="header m-2"> Semana: <span class="bold text-violet-400"> {{ week_dates_by_month[weekly_schedule_index].weekNumber }} </span> | <span class="bold text-green-200"> {{ week_dates_by_month[weekly_schedule_index].startDate }} </span> a <span class="bold text-green-200"> {{ week_dates_by_month[weekly_schedule_index].endDate }} </span> | 
-                            <button @click="loadLastBurnedImage(), closeEditing()" class="text-yellow-300"><i class="text-md text-yellow-300 fa-solid fa-rotate"></i> Recargar tabla</button> |
-                            <button @click="saveChanges(weekly_schedule.week_number, selected_department_id, weekly_schedule), closeEditing();" class="text-green-400"><i class="text- text-green-400 fa-solid fa-floppy-disk"></i> Grabar imagen</button>
+                        <h4 v-if="weekly_schedule.schedule_data.schedules.length > 0" class="header m-2"> Semana: <span class="bold text-violet-400"> {{ week_dates_by_month[weekly_schedule_index].weekNumber }} </span> | <span class="bold text-green-200"> {{ week_dates_by_month[weekly_schedule_index].startDate }} </span> a <span class="bold text-green-200"> {{ week_dates_by_month[weekly_schedule_index].endDate }} </span>  
+                            <span v-if="userStore.hasPermission('edit schedules')"> | <button @click="loadLastBurnedImage(), closeEditing()" class="text-yellow-300"><i class="text-md text-yellow-300 fa-solid fa-rotate"></i> Recargar tabla</button> </span>
+                            <span v-if="userStore.hasPermission('edit schedules')"> | <button @click="saveChanges(weekly_schedule.week_number, selected_department_id, weekly_schedule), closeEditing();" class="text-green-400"><i class="text- text-green-400 fa-solid fa-floppy-disk"></i> Grabar imagen</button></span>
                         </h4>
                         <table v-if="weekly_schedule.schedule_data.schedules.length > 0" class="w-full text-sm text-left rtl:text-right border dark:border-gray-600 text-gray-500 dark:text-gray-400">
                             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
@@ -726,7 +826,7 @@ onMounted(async () => {
                                     <th scope="col" class="px-6 py-3"
                                         v-for="(day_of_week, index) in formatted_data_indexes" :key="index"> {{ day_of_week }}
                                     </th>
-                                    <th class="">Editar</th>
+                                    <th v-if="userStore.hasPermission('edit schedules')" class="">Editar</th>
                                     <!-- <th scope="col" class="px-6 py-3"></th> -->
                                 </tr>
                                 <tr><!-- v-if="(weekly_schedule.schedule_data.schedules.length > 0)" -->
@@ -734,7 +834,7 @@ onMounted(async () => {
                                     <th scope="col" class="px-6 py-1" v-for="(date, date_index) in weekly_schedule.schedule_data.schedules[0]" :key="date_index">
                                         <span class="text-green-100" :class="[checkTodayMatch(formatDateToDDMMYYYY(date.date)) ? 'today_th' : '', ]">{{ formatDateToDDMMYYYY(date.date) }}</span>
                                     </th>
-                                    <th></th>
+                                    <th v-if="userStore.hasPermission('edit schedules')"></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -744,7 +844,7 @@ onMounted(async () => {
                                     class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l bg-gray-600 dark:border-gray-500 dark:text-white"
                                     :class="[(user[user_index].id == 8 || user[user_index].id == 9) ? 'reduced_contract' : '',]"
                                     >
-                                        <template v-if="is_editing && edit_state.row === user_index && edit_state.table === weekly_schedule_index">
+                                        <template v-if="is_editing && edit_state.row === user_index && edit_state.table === weekly_schedule_index && userStore.hasPermission('edit schedules')">
                                             <i class="fa-solid fa-user"></i> {{ user[user_index].name }}
                                             <button
                                             @click="moveUser(weekly_schedules_for_month, weekly_schedule_index , user_index, 'up')" 
@@ -773,7 +873,7 @@ onMounted(async () => {
                                                 (user[schedule_index].is_holiday && user[schedule_index].holiday_state === 2) ? 'is_confirmed_holiday' : '', 
                                                 (user[schedule_index].is_holiday && user[schedule_index].holiday_state === 1) ? 'is_not_confirmed_holiday' : '', 
                                                 (user[schedule_index].is_not_available) ? 'is_not_available' : '', ]">
-                                        <template v-if="is_editing && edit_state.row === user_index && edit_state.table === weekly_schedule_index">
+                                        <template v-if="is_editing && edit_state.row === user_index && edit_state.table === weekly_schedule_index && userStore.hasPermission('edit schedules')">
                                             <select v-model="schedule.start_time" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full p-1.5 my-1 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
                                                 <option selected disabled default :value="schedule.start_time">{{ schedule.start_time }}</option>
                                                 <option v-for="(value, key) in schedule_hour_selector" :key="key" :value="key">{{ value }}</option>
@@ -799,8 +899,8 @@ onMounted(async () => {
                                             schedule.start_time + ' - ' + schedule.end_time }}
                                         </template>
                                     </td>
-                                    <td class="w-14 pl-2 flex-end">
-                                        <template v-if="is_editing && edit_state.row === user_index && edit_state.table === weekly_schedule_index">
+                                    <td v-if="userStore.hasPermission('edit schedules')" class="w-14 pl-2 flex-end">
+                                        <template v-if="is_editing && edit_state.row === user_index && edit_state.table === weekly_schedule_index && userStore.hasPermission('edit schedules')">
                                             <button @click="closeEditing(user_index, weekly_schedule_index)"><i class="p-1 m-1 text-2xl text-red-400 fa-solid fa-xmark"></i></button>
                                         </template>
                                         <template v-else>
@@ -821,9 +921,9 @@ onMounted(async () => {
                 <template v-if="weekly_schedule.length > 0 && selected_week !== 'all'">
                     <div v-if="selected_week" class="pb-14 flex items-center justify-center text-gray-900 dark:text-gray-100">
                         <div v-if="weekly_schedule.length > 0" class="relative overflow-x-auto mt-5">
-                                <h4 v-if="weekly_schedule.length > 0 && selected_week.weekNumber" class="header m-2"> Semana: <span class="bold text-violet-400"> {{ selected_week?.weekNumber }} </span> | <span class="bold text-green-200"> {{ selected_week?.startDate }} </span> a <span class="bold text-green-200"> {{ selected_week?.endDate }} </span> | 
-                                    <button @click="getWeeklySchedule(selected_week.weekNumber, selected_department_id), closeEditing()" class="text-yellow-300"><i class="text-md text-yellow-300 fa-solid fa-rotate"></i> Recargar tabla</button> |
-                                    <button @click="saveChanges(selected_week.weekNumber, selected_department_id, weekly_schedule[0]), closeEditing()" class="text-green-400"><i class="text- text-green-400 fa-solid fa-floppy-disk"></i> Grabar imagen</button>
+                                <h4 v-if="weekly_schedule.length > 0 && selected_week.weekNumber" class="header m-2"> Semana: <span class="bold text-violet-400"> {{ selected_week?.weekNumber }} </span> | <span class="bold text-green-200"> {{ selected_week?.startDate }} </span> a <span class="bold text-green-200"> {{ selected_week?.endDate }} </span>  
+                                   <span v-if="userStore.hasPermission('edit schedules')"> | <button @click="getWeeklySchedule(selected_week.weekNumber, selected_department_id), closeEditing()" class="text-yellow-300"><i class="text-md text-yellow-300 fa-solid fa-rotate"></i> Recargar tabla</button> </span>
+                                    <span v-if="userStore.hasPermission('edit schedules')"> | <button @click="saveChanges(selected_week.weekNumber, selected_department_id, weekly_schedule[0]), closeEditing()" class="text-green-400"><i class="text- text-green-400 fa-solid fa-floppy-disk"></i> Grabar imagen</button> </span>
                                 </h4>
                                 <table v-if="weekly_schedule.length > 0" class="w-full text-sm text-left rtl:text-right border dark:border-gray-600 text-gray-500 dark:text-gray-400">
                                     <thead
@@ -833,14 +933,14 @@ onMounted(async () => {
                                             <th scope="col" class="px-6 py-3"
                                                 v-for="(day_of_week, index) in formatted_data_indexes" :key="index"> {{ day_of_week }}
                                             </th>
-                                            <th class="">Editar</th>
+                                            <th v-if="userStore.hasPermission('edit schedules')" class="">Editar</th>
                                         </tr>
                                         <tr v-if="(week_date_range_dates.length > 0)">
                                             <th scope="col" class="px-6 py-1"></th>
                                             <th scope="col" class="px-6 py-1" v-for="date in week_date_range_dates" :key="date" >
                                                 <span class="text-green-100" :class="[checkTodayMatch(date) ? 'today_th' : '', ]">{{ date }}</span>
                                             </th>
-                                            <th></th>
+                                            <th v-if="userStore.hasPermission('edit schedules')"></th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -851,7 +951,7 @@ onMounted(async () => {
                                                     class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l bg-gray-600 dark:border-gray-500 dark:text-white"
                                                     :class="[(user[user_index].id == 8 || user[user_index].id == 9) ? 'reduced_contract' : '',]"
                                                     >
-                                                    <template v-if="is_editing && edit_state.row === user_index">
+                                                    <template v-if="is_editing && edit_state.row === user_index && userStore.hasPermission('edit schedules')">
                                                         <i class="fa-solid fa-user"></i> {{ user[user_index].name }}
                                                             <button
                                                                 @click="moveUser(weekly_schedule, 0, user_index, 'up')" 
@@ -879,7 +979,7 @@ onMounted(async () => {
                                                             (schedule.start_time === '00:00' && schedule.end_time === '00:00' && (schedule.is_weekend_day)) ? 'free_day' : schedule.is_weekend_day ? 'free_day' : '', 
                                                             (user[schedule_index].is_holiday && user[schedule_index].holiday_state ===2) ? 'is_confirmed_holiday' : '', 
                                                             (user[schedule_index].is_not_available) ? 'is_not_available' : '', ]">
-                                                    <template v-if="is_editing && edit_state.row === user_index">
+                                                    <template v-if="is_editing && edit_state.row === user_index && userStore.hasPermission('edit schedules')">
                                                         <select v-model="schedule.start_time" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full p-1.5 my-1 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
                                                             <option selected disabled default :value="schedule.start_time">{{ schedule.start_time }}</option>
                                                             <option v-for="(value, key) in schedule_hour_selector" :key="key" :value="key">{{ value }}</option>
@@ -905,8 +1005,8 @@ onMounted(async () => {
                                                         schedule.start_time + ' - ' + schedule.end_time }}
                                                     </template>
                                                 </td>
-                                                <td class="w-14 pl-2 flex-end">
-                                                    <template v-if="is_editing && edit_state.row === user_index">
+                                                <td v-if="userStore.hasPermission('edit schedules')" class="w-14 pl-2 flex-end">
+                                                    <template v-if="is_editing && edit_state.row === user_index && userStore.hasPermission('edit schedules')">
                                                         <button @click="closeEditing(user_index)"><i class="p-1 m-1 text-2xl text-red-400 fa-solid fa-xmark"></i></button>
                                                     </template>
                                                     <template v-else>

@@ -7,6 +7,24 @@ use App\Models\User;
 
 class UserController extends Controller
 {
+    public function index()
+    {
+        $id = auth()->user()->id;
+        $user = User::where('id', $id)->first(); // Get the user
+    
+        // Check if user exists before calling rolesToArray()
+        if ($user) {
+            // Get roles and permissions using the rolesToArray() method
+            $rolesAndPermissions = $user->rolesToArray();
+        }
+    
+        return response()->json([
+            'user' => $user,
+            'roles' => $rolesAndPermissions['roles'] ?? [],  // Access the roles from the array
+            'permissions' => $rolesAndPermissions['permissions'] ?? [],  // Access the permissions
+        ]);
+    }
+    
     public function getUsersByDepartament($departament_id)
     {
         // Fetch the users for the given department

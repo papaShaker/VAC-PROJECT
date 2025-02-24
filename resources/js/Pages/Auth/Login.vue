@@ -6,6 +6,13 @@ import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { createPinia } from 'pinia';
+import { useUserStore } from '../../stores/userStore';
+
+/*  */
+
+
+/*  */
 
 defineProps({
     canResetPassword: {
@@ -24,6 +31,17 @@ const form = useForm({
 
 const submit = () => {
     form.post(route('login'), {
+        onSuccess: async () => {
+            const userStore = useUserStore();
+            await userStore.fetchRolesAndPermissions().then(() => {
+                // Logging after fetch is complete
+                console.log(userStore.roles);  
+                console.log(userStore.permissions);
+                console.log(userStore.user);
+            }).catch((error) => {
+                console.error("Error fetching roles and permissions:", error);
+            });
+        },
         onFinish: () => form.reset('password'),
     });
 };
