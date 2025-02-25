@@ -24,6 +24,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'view department selector',
             'view month selector',
             'view administrar page',
+            'view schedule templates',
             'edit schedules',
             'edit schedules templates',
             'eliminate template',
@@ -62,6 +63,7 @@ class RolesAndPermissionsSeeder extends Seeder
         'view pending vacations table',
         'view administrar page',
         'view month selector',
+        'view schedule templates',
         'edit schedules',
         'edit schedules templates',
         'eliminate template',
@@ -83,6 +85,7 @@ class RolesAndPermissionsSeeder extends Seeder
         // Assign specific permissions to rrhh
         $rrhh->syncPermissions([
         'view pending vacations table',
+        'view schedule templates',
         'view administrar page',
         'view employees',
         'view departments',

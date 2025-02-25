@@ -47,7 +47,7 @@ const showingNavigationDropdown = ref(false);
                                     Vacaciones
                                 </NavLink>
                                 <NavLink :href="route('schedule')" :active="route().current('schedule')">
-                                    Horario
+                                    Horarios
                                 </NavLink>
                                 <NavLink v-if="userStore.hasPermission('view administrar page')" :href="route('manager')" :active="route().current('manager')">
                                     Administrar
@@ -126,9 +126,9 @@ const showingNavigationDropdown = ref(false);
                             Vacaciones
                         </ResponsiveNavLink>
                         <ResponsiveNavLink :href="route('schedule')" :active="route().current('schedule')">
-                            Horario
+                            Horarios
                         </ResponsiveNavLink>
-                        <ResponsiveNavLink :href="route('manager')" :active="route().current('manager')">
+                        <ResponsiveNavLink v-if="userStore.hasPermission('view administrar page')" :href="route('manager')" :active="route().current('manager')">
                             Administrar
                         </ResponsiveNavLink>
                     </div>

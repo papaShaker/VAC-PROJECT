@@ -6,10 +6,12 @@ import { ref, reactive, onBeforeMount, onMounted, computed, watch } from 'vue';
 import axios from 'axios';
 import { toast } from 'vue3-toastify';
 import ModalInfoHolidays from '@/Components/ModalInfoHolidays.vue';
+import { useUserStore } from '@/stores/userStore';
 
 const props = defineProps({
     departments: Array,
 });
+const userStore = useUserStore();
 
 const users_toggled = ref(false);
 const departments_toggled = ref(false);
@@ -168,7 +170,7 @@ onMounted(() => {
         </template>
 
 <!-- CHECKBOX USERS -->
-        <div class="w-full pt-12"> <!-- CHECKBOX USERS START -->
+        <div v-if="userStore.hasPermission('view employees')" class="w-full pt-12"> <!-- CHECKBOX USERS START -->
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="px-4 py-2 flex justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
@@ -215,7 +217,7 @@ onMounted(() => {
                                                     <th class="text-center text-gray-900 dark:text-gray-100">NOMBRE</th>
                                                     <th class="text-center text-gray-900 dark:text-gray-100">DPTO</th>
                                                     <th class="text-center text-gray-900 dark:text-gray-100">ZONA</th>
-                                                    <th class="text-center text-gray-900 dark:text-gray-100">EDITAR</th>
+                                                    <th v-if="userStore.hasPermission('edit employees')" class="text-center text-gray-900 dark:text-gray-100">EDITAR</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -224,7 +226,7 @@ onMounted(() => {
                                                     <td class="text-center text-gray-900 dark:text-gray-100">{{ user.name }}</td>
                                                     <!-- DEPARTMENT SELECTOR -->
                                                     <td class="text-center text-gray-900 dark:text-gray-100">
-                                                        <template v-if="is_editing && edit_state.row === user_index">
+                                                        <template v-if="is_editing && edit_state.row === user_index && userStore.hasPermission('edit employees')">
                                                             <select v-model="edit_state.selected_department" class="text-xs bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded p-1">
                                                                 <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
                                                             </select>
@@ -235,7 +237,7 @@ onMounted(() => {
                                                     </td>
                                                     <!-- ZONE SELECTOR -->
                                                     <td class="text-center text-gray-900 dark:text-gray-100">
-                                                        <template v-if="is_editing && edit_state.row === user_index">
+                                                        <template v-if="is_editing && edit_state.row === user_index && userStore.hasPermission('edit employees')">
                                                             <select v-model="edit_state.selected_zone" class="text-xs bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded p-1">
                                                                 <option v-for="zone in zones" :key="zone.id" :value="zone.id">{{ zone.zone }}</option>
                                                             </select>
@@ -245,8 +247,8 @@ onMounted(() => {
                                                         </template>
                                                     </td>
 
-                                                    <td class="text-center text-gray-900 dark:text-gray-100">
-                                                        <template v-if="is_editing && edit_state.row === user_index">
+                                                    <td  v-if="userStore.hasPermission('edit employees')" class="text-center text-gray-900 dark:text-gray-100">
+                                                        <template v-if="is_editing && edit_state.row === user_index && userStore.hasPermission('edit employees')">
                                                             <button @click="saveChanges(user.id)">
                                                                 <i class="mx-1 text-lg text-green-400 fa-solid fa-check"></i>
                                                             </button>
@@ -276,7 +278,7 @@ onMounted(() => {
 <!-- CHECKBOX USERS END -->
 
 <!-- CHECKBOX DEPARTMENTS -->
-        <div class="w-full pt-4"> <!-- CHECKBOX DEPARTMENTS START -->
+        <div v-if="userStore.hasPermission('view departments')" class="w-full pt-4"> <!-- CHECKBOX DEPARTMENTS START -->
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="px-4 py-2 flex justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
@@ -386,7 +388,7 @@ onMounted(() => {
 <!-- CHECKBOX DEPARTMENTS END -->
 
 <!-- CHECKBOX CONTRACTS -->
-        <div class="w-full pt-4"> <!-- CHECKBOX CONTRACTS START -->
+        <div v-if="userStore.hasPermission('view contracts')" class="w-full pt-4"> <!-- CHECKBOX CONTRACTS START -->
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="px-4 py-2 flex justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
@@ -428,7 +430,7 @@ onMounted(() => {
 <!-- CHECKBOX CONTRACTS END -->
 
 <!-- CHECKBOX CONTRACT TYPES -->
-        <div class="w-full pt-4"> <!-- CHECKBOX CONTRACT TYPES -->
+        <div v-if="userStore.hasPermission('view contract types')" class="w-full pt-4"> <!-- CHECKBOX CONTRACT TYPES -->
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="px-4 py-2 flex justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
@@ -470,7 +472,7 @@ onMounted(() => {
 <!-- CHECKBOX CONTRACT TYPES END -->
 
 <!-- CHECKBOX ZONES -->
-        <div class="w-full pt-4"> <!-- CHECKBOX ZONES -->
+        <div v-if="userStore.hasPermission('view zones')" class="w-full pt-4"> <!-- CHECKBOX ZONES -->
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="px-4 py-2 flex justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
@@ -512,7 +514,7 @@ onMounted(() => {
 <!-- CHECKBOX ZONES END -->
 
 <!-- CHECKBOX NON WORKING DAYS -->
-        <div class="w-full pt-4"> <!-- CHECKBOX NON WORKING DAYS -->
+        <div v-if="userStore.hasPermission('view non working days')" class="w-full pt-4"> <!-- CHECKBOX NON WORKING DAYS -->
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="px-4 py-2 flex justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
@@ -554,7 +556,7 @@ onMounted(() => {
 <!-- CHECKBOX NON WORKING DAYS END -->
 
 <!-- CHECKBOX EXTRA DAYS -->
-        <div class="w-full pt-4"> <!-- CHECKBOX EXTRA DAYS -->
+        <div v-if="userStore.hasPermission('view extra days')" class="w-full pt-4"> <!-- CHECKBOX EXTRA DAYS -->
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="px-4 py-2 flex justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
@@ -596,7 +598,7 @@ onMounted(() => {
 <!-- CHECKBOX EXTRA DAYS END -->
 
 <!-- CHECKBOX EXTRA DAY TYPES -->
-        <div class="w-full pt-4"> <!-- CHECKBOX EXTRA DAY TYPES -->
+        <div v-if="userStore.hasPermission('view extra day types')" class="w-full pt-4"> <!-- CHECKBOX EXTRA DAY TYPES -->
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="px-4 py-2 flex justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">

@@ -563,7 +563,7 @@ onMounted(() => {
     <AuthenticatedLayout>
         <template #header>
             <h2 class="text-2xl text-gray-800 dark:text-gray-200 leading-tight"
-                style="font-family: 'Abel', sans-serif;">Bienvenido a Horario</h2>
+                style="font-family: 'Abel', sans-serif;">Bienvenido a Horarios</h2>
         </template>
 
         <div class="pt-3" :class="[admin_toggled ? 'pt-3' : '']">
