@@ -91,7 +91,9 @@ const ifNoPermissionDepartment = async () => {
 /* HOLIDAYS TO BE CONFIRMED LIST END */
 
 const fetchJobRanges = () => {
-    axios.get(`/api/allJobRanges`).then((response) => {
+    axios.get(`api/allJobRanges`).then((response) => {
+        console.log("FETCH JOBS");
+        console.log(response.data);
         jobRanges.value = response.data;
     }).catch(error => {
         console.error('Error', error);

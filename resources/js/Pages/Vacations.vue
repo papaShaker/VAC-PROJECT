@@ -96,6 +96,7 @@ const fetchUser = async () => {
         .then(response => {
             //console.log(response.data); // This will be your authenticated user
             user.value = response.data;
+            console.log(user.value);
         })
         .catch(error => {
             console.error('Error fetching user:', error);

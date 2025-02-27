@@ -7,6 +7,8 @@ use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\WeeklyScheduleController;
+use App\Http\Controllers\JobRangeController;
+use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Database\Capsule\Manager;
 use Illuminate\Foundation\Application;
@@ -41,12 +43,28 @@ Route::get('/', function () {
     }
 });
 
-/* Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard'); */
+
+Route::middleware(['auth', 'verified'])->get('/api/user', function (Request $request) {
+    return $request->user();
+});
 
 /* PROTECTED AUTH + VERIFIED */
 Route::middleware(['auth', 'verified'])->group(function () {
+    /* ---USER ROUTES--- */
+    /* API */ Route::get('/api/user', function (Request $request) {
+        return $request->user();
+    });
+
+    /* API */ Route::get('/api/user/{id}', [UserController::class, 'getUserById'])
+        ->name('getUserById');
+
+    /* API */ Route::get('api/user/vacations/{year}/{id}', [HolidayController::class, 'index'])
+        ->name('userVacationsByYearAndId');
+
+    /* API */ Route::get('api/user/vacations/{year}', [HolidayController::class, 'index'])
+        ->name('userVacationsByYear');
+
+    
 
     /* ---HOME/DASHBOARD ROUTES--- */
     Route::get('/dashboard', function () {
@@ -54,14 +72,28 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })
         ->name('dashboard');
 
+
     /* ---DEPARTMENTS ROUTES--- */
     // This route renders the 'Departments' view
     Route::get('/departments', [DepartmentController::class, 'index'])
         ->name('departments');
+    
+    /* API */ Route::get('/api/department_name/{id}', [DepartmentController::class, 'getDepartmentNameById'])
+        ->name('getDepartmentNameById');
+    
+    /* API */ Route::get('api/calendar_department/{year}', [HolidayController::class, 'calendarDepartment'])
+        ->name('calendarDepartmentByYear');
+
+    /* API */ Route::get('api/calendar_department/{year}/{id}', [HolidayController::class, 'calendarDepartment'])
+            ->name('calendarDepartmentByYearAndId');
+
+    /* API */ Route::get('api/calendar_department/{year}/{id}/{year_month}', [HolidayController::class, 'calendarDepartment'])
+        ->name('calendarDepartmentByYearByIdAndMonth');
 
     // This route fetches users by department ID
     Route::get('/departments/{departament_id}/users', [UserController::class, 'getUsersByDepartament'])
         ->name('departments.users');
+
 
     /* ---VACATIONS ROUTES--- */
     // This route renders the 'Vacations' view
@@ -70,7 +102,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })
         ->name('vacations');
 
+    /* API */ Route::get('api/calendar/{year}/{id}', [HolidayController::class, 'calendar'])
+        ->name('calendarByYearAndId');
     
+    /* API */ Route::get('api/calendar/{year}', [HolidayController::class, 'calendar'])
+        ->name('calendarByYear');
+
+    /* API */ Route::get('api/vacations_to_be_confirmed', [HolidayController::class, 'holidaysToConfirmList'])
+        ->name('holidaysToConfirmList');
+
     Route::post('vacations/delete', [HolidayController::class, 'cancelHolidays'])
         ->name('cancelVacations');
 
@@ -93,6 +133,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('/schedule/savescheduletemplate', [ScheduleController::class, 'addScheduleTemplate'])
         ->name('addScheduleTemplate');
+
+    /* API */ Route::get('api/week_dates/{year}/{week_number}', [ScheduleController::class, 'getDatesForWeek'])
+        ->name('getDatesForWeek');
+
+    /* API */ Route::get('api/week_numbers_by_month/{year}/{month}', [ScheduleController::class, 'getWeekNumbersForMonth'])
+        ->name('getWeekNumbersForMonth');
+
+    /* API */ Route::get('api/weekly_schedules_for_month/{department_id}/{year}/{month}', [ScheduleController::class, 'getWeeklySchedulesForMonth'])
+        ->name('getWeeklySchedulesForMonth');
+
+    /* API */ Route::get('api/schedules_template_check/{department_id}/{users_available}', [ScheduleController::class, 'checkForScheduleTemplate'])
+        ->name('checkForScheduleTemplate');
+
 
     /* ---VACATION MANAGER ROUTES--- */
     // This route renders the 'Vacations' view
@@ -122,6 +175,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::put('/update/user/{user_id}', [UserController::class, 'updateUser'])
         ->name('updateUser');
+
+    /* API */ Route::get('api/allJobRanges', [JobRangeController::class, 'getAll'])
+        ->name('getAllJobRanges');
 });
 
 

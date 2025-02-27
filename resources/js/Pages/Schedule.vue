@@ -195,6 +195,7 @@ const checkForScheduleTemplates = async (department_id, users_available) => {
     Object.keys(existing_template_error).forEach((key) => delete existing_template_error[key]);
     console.log(department_id);
     console.log(users_available);
+    console.log("ENTRA SCHEDULECHECK TEMPLATES:");
     await axios.get('/api/schedules_template_check/' + department_id + '/' + users_available).then((response) => {
         console.log(response.data);
         if(response.data.status === "Error"){
