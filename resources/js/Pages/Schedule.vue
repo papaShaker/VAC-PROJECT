@@ -631,7 +631,7 @@ onMounted(() => {
                                 <tbody>
                                     <tr v-for="(user_data, user_index) in existing_template_data" :key="user_index" class=" bg-white border-b dark:bg-gray-800 dark:border-gray-500">
                                         <td class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l bg-gray-600 dark:border-gray-500 dark:text-white">
-                                            {{ 'Usuario' }}
+                                            {{ 'Usuario ' + (user_index+1) }}
                                         </td>
                                         <td v-for="(day, day_index) in user_data" :key="day_index" class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l dark:border-gray-500 dark:text-white"
                                         :class="[(day.start_time === '00:00' && day.end_time === '00:00' && (day.is_free_day)) ? 'free_day' : day.is_free_day ? 'free_day' : '']">
@@ -648,7 +648,7 @@ onMounted(() => {
                         </div>
                         <div v-if="existing_template_error.status && showAddScheduleButton && showAddScheduleButtonAfterFail" class="sm:flex sm:justify-center items-center flex-col space-y-2 pr-9">
 
-                                <p class="text-red-400 m-12"> {{ existing_template_error.message }}</p>
+                                <p class="text-red-400 m-12 text-center"> {{ existing_template_error.message }}</p>
                                 <button v-if="userStore.hasPermission('add template')" @click="form.department_id = selected_department_id_admin, form.users_available = users_available, initializeForm(), showAddScheduleButton = false, check_button_when_add_schedule_is_open = true;" class="flex items-center w-full justify-center  sm:ml-0 sm:mt-0 bg-green-600/70 hover:bg-green-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg"> AÑADIR PLANTILLA </button>
 
                         </div>
@@ -696,7 +696,7 @@ onMounted(() => {
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <h1 class="mt-5 text-center text-2xl text-gray-700 font-semibol dark:text-white" style="font-family: 'Abel', sans-serif;">Horarios  <span v-if="selected_department_name"> - {{ selected_department_name }}</span> <span v-if="selected_month_name"> - {{ selected_month_name }}</span> </h1>
-                    <div class="p-2 pt-16 pb-8 grid items-center text-gray-900 dark:text-gray-100 sm:flex sm:justify-between px-6">
+                    <div class="p-2 pt-16 pb-8 grid items-center text-gray-900 dark:text-gray-100 sm:flex sm:justify-between px-2">
                         <div class="sm:flex sm:justify-center sm:ml-5 grid items-center space-x-5 items_spacing_y w-[350px]"><!-- Dep -->
                             <h4 class="flex ml-5">Departamento:</h4>
                             <form class="flex max-w-sm mx-auto items-center" @submit.prevent="">
@@ -816,7 +816,7 @@ onMounted(() => {
                             <!-- START MULTI TABLES -->
                 <div v-if="(selected_month && !selected_week) || (selected_month && selected_week === 'all')" class="pb-14 grid items-center justify-center text-gray-900 dark:text-gray-100">
                     <div v-for="(weekly_schedule, weekly_schedule_index) in weekly_schedules_for_month" :key="weekly_schedule_index" class="relative overflow-x-auto my-5">
-                        <h4 v-if="weekly_schedule.schedule_data.schedules.length > 0" class="header m-2"> Semana: <span class="bold text-violet-400"> {{ week_dates_by_month[weekly_schedule_index].weekNumber }} </span> | <span class="bold text-green-200"> {{ week_dates_by_month[weekly_schedule_index].startDate }} </span> a <span class="bold text-green-200"> {{ week_dates_by_month[weekly_schedule_index].endDate }} </span>  
+                        <h4 v-if="weekly_schedule.schedule_data.schedules.length > 0" class="my-2 mx-1"> Semana: <span class="bold text-violet-400"> {{ week_dates_by_month[weekly_schedule_index].weekNumber }} </span> | <span class="bold text-green-200"> {{ week_dates_by_month[weekly_schedule_index].startDate }} </span> a <span class="bold text-green-200"> {{ week_dates_by_month[weekly_schedule_index].endDate }} </span>  
                             <span v-if="userStore.hasPermission('edit schedules')"> | <button @click="loadLastBurnedImage(), closeEditing()" class="text-yellow-300"><i class="text-md text-yellow-300 fa-solid fa-rotate"></i> Recargar tabla</button> </span>
                             <span v-if="userStore.hasPermission('edit schedules')"> | <button @click="saveChanges(weekly_schedule.week_number, selected_department_id, weekly_schedule), closeEditing();" class="text-green-400"><i class="text- text-green-400 fa-solid fa-floppy-disk"></i> Grabar imagen</button></span>
                         </h4>
@@ -824,18 +824,18 @@ onMounted(() => {
                             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                                 <tr>
                                     <th scope="col" class="px-6 py-3">Turno</th>
-                                    <th scope="col" class="px-6 py-3"
+                                    <th scope="col" class="px-6 py-3 text-center"
                                         v-for="(day_of_week, index) in formatted_data_indexes" :key="index"> {{ day_of_week }}
                                     </th>
                                     <th v-if="userStore.hasPermission('edit schedules')" class="">Editar</th>
                                     <!-- <th scope="col" class="px-6 py-3"></th> -->
                                 </tr>
                                 <tr><!-- v-if="(weekly_schedule.schedule_data.schedules.length > 0)" -->
-                                    <th scope="col" class="px-6 py-1"></th>
-                                    <th scope="col" class="px-6 py-1" v-for="(date, date_index) in weekly_schedule.schedule_data.schedules[0]" :key="date_index">
+                                    <th scope="col" class="px-2 py-1 text-center"></th>
+                                    <th scope="col" class="px-2 py-1 pb-3  text-center" v-for="(date, date_index) in weekly_schedule.schedule_data.schedules[0]" :key="date_index">
                                         <span class="text-green-100" :class="[checkTodayMatch(formatDateToDDMMYYYY(date.date)) ? 'today_th' : '', ]">{{ formatDateToDDMMYYYY(date.date) }}</span>
                                     </th>
-                                    <th v-if="userStore.hasPermission('edit schedules')"></th>
+                                    <th v-if="userStore.hasPermission('edit schedules')" class="px-2 py-1 text-center"></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -922,7 +922,7 @@ onMounted(() => {
                 <template v-if="weekly_schedule.length > 0 && selected_week !== 'all'">
                     <div v-if="selected_week" class="pb-14 flex items-center justify-center text-gray-900 dark:text-gray-100">
                         <div v-if="weekly_schedule.length > 0" class="relative overflow-x-auto mt-5">
-                                <h4 v-if="weekly_schedule.length > 0 && selected_week.weekNumber" class="header m-2"> Semana: <span class="bold text-violet-400"> {{ selected_week?.weekNumber }} </span> | <span class="bold text-green-200"> {{ selected_week?.startDate }} </span> a <span class="bold text-green-200"> {{ selected_week?.endDate }} </span>  
+                                <h4 v-if="weekly_schedule.length > 0 && selected_week.weekNumber" class="m-2"> Semana: <span class="bold text-violet-400"> {{ selected_week?.weekNumber }} </span> | <span class="bold text-green-200"> {{ selected_week?.startDate }} </span> a <span class="bold text-green-200"> {{ selected_week?.endDate }} </span>  
                                    <span v-if="userStore.hasPermission('edit schedules')"> | <button @click="getWeeklySchedule(selected_week.weekNumber, selected_department_id), closeEditing()" class="text-yellow-300"><i class="text-md text-yellow-300 fa-solid fa-rotate"></i> Recargar tabla</button> </span>
                                     <span v-if="userStore.hasPermission('edit schedules')"> | <button @click="saveChanges(selected_week.weekNumber, selected_department_id, weekly_schedule[0]), closeEditing()" class="text-green-400"><i class="text- text-green-400 fa-solid fa-floppy-disk"></i> Grabar imagen</button> </span>
                                 </h4>

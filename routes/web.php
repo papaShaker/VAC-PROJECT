@@ -161,6 +161,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/manager/update/holidays', [HolidayController::class, 'holidaysUpdateState'])
         ->name('updateHolidays');
 
+    Route::put('/update/department/{id}', [DepartmentController::class, 'update'])
+        ->name('updateDep');
+
+    Route::post('/insert/department', [DepartmentController::class, 'store'])
+        ->name('storeDep');
+    
 
     /* ---ADMINISTRATION ROUTES--- */
     // This route renders the 'VacationsManager' view

@@ -632,7 +632,7 @@ const handleCheckboxChangeHolidaysToBeConfirmed = (vac) => {
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <h1 class="mt-12 text-center sm:text-2xl text-xl text-gray-700 font-semibol dark:text-white" style="font-family: 'Abel', sans-serif;">Resumen de vacaciones <span v-if="selected_department_name">- {{ selected_department_name }}</span> <span v-if="selected_month_name"> - {{ selected_month_name }}</span></h1>
-                    <div class="p-2 sm:pt-12 pt-6 pb-8 grid items-center text-gray-900 dark:text-gray-100 sm:flex sm:justify-between sm:px-56 px-6">
+                    <div class="p-2 sm:pt-12 pt-6 pb-8 grid items-center text-gray-900 dark:text-gray-100 sm:flex sm:justify-between sm:px-56 px-2">
                         <div  class="sm:flex sm:justify-center sm:ml-5 grid items-center space-x-5 items_spacing_y w-[350px]">
                             <h4 class="flex ml-5">Departamento:</h4>
                             <form class="flex max-w-sm mx-auto items-center" @submit.prevent="">
