@@ -79,7 +79,7 @@ onMounted(() => {
                     v-for="(section, index) in sections" 
                     :key="index" 
                     ref="sectionRefs"
-                    class="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-0 transition-opacity duration-5000 p-12 items-center"
+                    class="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-0 transition-opacity duration-500 p-12 items-center"
                     :class="{ 'opacity-100': isVisible[index] }"
                     >
                             <!-- ... -->
