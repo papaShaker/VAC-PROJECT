@@ -79,11 +79,11 @@ onMounted(() => {
                     v-for="(section, index) in sections" 
                     :key="index" 
                     ref="sectionRefs"
-                    class="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-0 transition-opacity duration-500 p-12 items-center"
+                    class="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-0 transition-opacity duration-500 p-6 sm:px-16 items-center"
                     :class="{ 'opacity-100': isVisible[index] }"
                     >
                             <!-- ... -->
-                        <div v-if="index % 2 === 0" class="text p-4">
+                        <div v-if="index % 2 === 0" class="text px-4 py-2">
                             <h1 class="text-2xl text-gray-100 italic" style="font-family: 'Abel', sans-serif;">{{ section.title }}</h1>
                             <p class="mt-2 text-blue-200 text-justify italic whitespace-pre-line" >{{ section.text }}</p>
                         </div>
