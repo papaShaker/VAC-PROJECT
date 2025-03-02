@@ -77,29 +77,37 @@ class WeeklyScheduleController extends Controller
         $weeklySchedule = WeeklySchedule::where('department_id', $department_id)
                                         ->where('week_number', $week_number)
                                         ->where('year', $year)
+                                        ->withTrashed()
                                         ->first();
+        
 
-        if ($weeklySchedule) {
+        if ($weeklySchedule && (empty($weeklySchedule->schedule_data["users"]) && empty($weeklySchedule->schedule_data['schedules']))){
+            $weeklySchedule->forceDelete();
+        }
+
+        if ($weeklySchedule && (!empty($weeklySchedule->schedule_data["users"]) && !empty($weeklySchedule->schedule_data['schedules']))) {
             // Update the existing schedule
             $weeklySchedule->update(['schedule_data' => $data["schedule_data"]["schedule_data"]]);
-
             return response()->json(['status' => 'Success',
                 'message' => 'Horario actualizado con éxito.',
                 'weekly_schedule' => $weeklySchedule, ]);// Return updated schedule_data
         } else {
-
             $data = ['department_id' => $department_id,
-                'year' => $year,
-                'week_number' => $week_number,
-                'schedule_data' => $schedule_data["set_week"],
-                'rotation' => $schedule_data["rotation_index"]]; //(check if schedule for prev week exists, if so, get the rotation and check )
+            'year' => $year,
+            'week_number' => $week_number,
+            'schedule_data' => $schedule_data["set_week"],
+            'rotation' => $schedule_data["rotation_index"]]; //(check if schedule for prev week exists, if so, get the rotation and check )
             // Insert a new schedule
 
             $newWeeklySchedule = WeeklySchedule::create($data);
             //dd($newWeeklySchedule); //-> ON FIRST TRY ALL MONTHS
-            return response()->json(['status' => 'Success', 
+            if ($newWeeklySchedule && (empty($newWeeklySchedule->schedule_data["users"]) && empty($newWeeklySchedule->schedule_data['schedules']))){
+                $message = "Parece que no hay usuarios para esas fechas.";
+                return response()->json(['status' => 'Error', 'message' => $message, 'weekly_schedule' => $newWeeklySchedule]); 
+            } else { return response()->json(['status' => 'Success', 
                 'message' => 'Se ha generado un nuevo horario.', 
                 'weekly_schedule' => $newWeeklySchedule, ]);// Return updated schedule_data]);
+            }
         }
     }
 

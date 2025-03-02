@@ -30,7 +30,7 @@ const show_modal_info_holidays = ref(false);
 const toast_options = {
     closeOnClick: true,
     toastStyle: {
-        marginRight: '5px',
+        marginRight: '',
         backgroundColor: '#374151',
         color: '#DFECEC',
         borderRadius: '4px',

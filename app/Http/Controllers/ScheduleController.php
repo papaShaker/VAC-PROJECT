@@ -234,11 +234,11 @@ class ScheduleController extends Controller
 
 
     public function getDailyAvailableUsers($week_number, $department_id, $rotation_index = null, $year = null)
-    {
+    {   
         if(!$year){
             $year = now()->year;
         }
-        $year = now()->year;
+
         $start_of_week = Carbon::now()->setISODate($year, $week_number)->startOfWeek();
         $end_of_week = $start_of_week->copy()->endOfWeek();
 
@@ -633,6 +633,7 @@ class ScheduleController extends Controller
             $dates[] = $date->format('d-m-Y');
             $date->addDay(); // Move to the next day using Carbon's addDay() method
         }
+
         return $dates;
     }
 
@@ -693,11 +694,11 @@ class ScheduleController extends Controller
      * @param int $year the year
      * @return array an array with the weekly schedule data
      */
-    public function weeklySchedule($week_number = null, $department_id = null, $year = null){
+    public function weeklySchedule($week_number = null , $department_id = null, $year = null){
 
         $rotation_index = 0;
         $previous_week_number = null;
-
+        
         if ($week_number && $week_number === 1) {
             $previous_week_number = 52;
         } else {
@@ -709,18 +710,17 @@ class ScheduleController extends Controller
             ->where('year', $year)
             ->where('week_number', $week_number)
             ->first();
-            
+
         $previous_week = WeeklySchedule::where('department_id', $department_id)
             ->where('year', $year)
             ->where('week_number', $previous_week_number)
             ->first();
         
+            //dd(!empty($weekly_schedule->schedule_data["users"]) && !empty($weekly_schedule->schedule_data['schedules']));
         if($previous_week && $previous_week->rotation !== 0) {
             $rotation_index = $previous_week->rotation;
         }
-        
-        if ($weekly_schedule){
-
+        if ($weekly_schedule && (!empty($weekly_schedule->schedule_data["users"]) && !empty($weekly_schedule->schedule_data['schedules']))){
             $data = [
                 'weekly_schedule' => $weekly_schedule,
             ];
@@ -747,8 +747,10 @@ class ScheduleController extends Controller
          * @return array an array of weekly schedules for the given month
          */
     public function getWeeklySchedulesForMonth ($department_id, $year, $month) {
+        //dd("ENTRA -> DEP: " . $department_id . " YEAR: " . $year . " MONTH: " . $month );
         $weekly_schedules_for_month = [];
         $weeks = $this->getWeekNumbersForMonth($year, $month);
+        //dd($weeks);
         foreach ($weeks as $week_index => $week) {
             $weekly_schedule = $this->weeklySchedule($week['week'], $department_id, $week['year']); /* ROTATION INDEX/WEEK MUST BE INITIALIZED IN weeklySchedule FUNCTION */
             $weekly_schedules_for_month[] = $weekly_schedule;

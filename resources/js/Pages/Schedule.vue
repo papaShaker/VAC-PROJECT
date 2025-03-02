@@ -82,7 +82,7 @@ const modal_schedules = reactive({
 const toast_options = {
     closeOnClick: true,
     toastStyle: {
-        marginRight: '5px',
+        marginRight: '',
         backgroundColor: '#374151',
         color: '#DFECEC',
         borderRadius: '4px',
@@ -137,8 +137,10 @@ const getWeeklySchedule = async (week_numb_param, dep_id_param, year) => {
             weekly_schedule.length = 0;
             weekly_schedule.push(response.data.weekly_schedule);
             console.log(weekly_schedule);
-            if (response.data.status){
+            if (response.data.status === 'Success'){
                 toast.success(`${response.data.message}`, toast_options);
+            } else if (response.data.status === 'Error') {
+                toast.error (`${response.data.message}`, toast_options);
             }
         });
     }
@@ -155,13 +157,13 @@ const getWeeklySchedule = async (week_numb_param, dep_id_param, year) => {
 const getWeeklySchedulesForMonth = async (department_id, year, month) => {
     loading.value = true;
     weekly_schedules_for_month.length = 0;
+    console.log("DEP: " + department_id + " YEAR: " + year + " MONTH: " + month);
     let weeks_generated = reactive([]);
     let weeks_available_data = reactive([]);
     try {
         let url = '/api/weekly_schedules_for_month/' + department_id + '/' + year + '/' + month;
         let response = await axios.get(url);
         if (response.data.length > 0) {
-            console.log(response.data);
             response.data.forEach((data) =>{
                 loading.value = false;
                 if (data.original) {
@@ -171,12 +173,23 @@ const getWeeklySchedulesForMonth = async (department_id, year, month) => {
                     weekly_schedules_for_month.push(data.weekly_schedule);
                     weeks_available_data.push(data.weekly_schedule.week_number);
                 }
-
+                
             })
-            if (weeks_generated.length > 0) {
+            let checkmark = false;
+            weekly_schedules_for_month.forEach((weekly_schedule) => {
+                if (weekly_schedule.schedule_data && weekly_schedule.schedule_data.schedules && weekly_schedule.schedule_data.schedules.length <= 0) {
+                    checkmark = true;
+                    console.log("CHECKMARK TRUE -> EMPTY schedule_data.schedules");
+                }
+            })
+            console.log(weekly_schedules_for_month);
+            if(weeks_generated.length > 0 && checkmark ) {
+                toast.error(`Parece que no hay usuarios para estas semanas: ${weeks_generated}.`, toast_options)
+            }
+            else if (weeks_generated.length > 0 && !checkmark ) {
                 toast.success(`Se han generado horarios para las semanas: ${weeks_generated}.`, toast_options);
             }
-            if (weeks_available_data.length > 0) {
+            else if (weeks_available_data.length > 0) {
                 toast.warning(`Horarios para las semanas: ${weeks_available_data} ya existen.`, toast_options);
             }
         }
@@ -646,13 +659,13 @@ onMounted(() => {
                         <div v-if="existing_template_data.length > 0 && userStore.hasPermission('eliminate template')" class="sm:flex sm:justify-between items-center grid pr-9 sm:pr-4">
                             <button @click="removeScheduleTemplate(selected_department_id_admin, users_available), checkForScheduleTemplates(selected_department_id_admin, users_available);" class="sm:ml-5 text-white text-lg rounded-lg bg-red-500 hover:bg-red-500/80 p-1 my-2 sm:w-full"> ELIMINAR PLANTILLA </button>
                         </div>
-                        <div v-if="existing_template_error.status && showAddScheduleButton && showAddScheduleButtonAfterFail" class="sm:flex sm:justify-center items-center flex-col space-y-2 pr-9">
+                        <div v-if="existing_template_error.status && showAddScheduleButton && showAddScheduleButtonAfterFail" class="sm:flex sm:justify-center items-center flex-col space-y-2 px-3 pr-9">
 
                                 <p class="text-red-400 m-12 text-center"> {{ existing_template_error.message }}</p>
                                 <button v-if="userStore.hasPermission('add template')" @click="form.department_id = selected_department_id_admin, form.users_available = users_available, initializeForm(), showAddScheduleButton = false, check_button_when_add_schedule_is_open = true;" class="flex items-center w-full justify-center  sm:ml-0 sm:mt-0 bg-green-600/70 hover:bg-green-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg"> AÑADIR PLANTILLA </button>
 
                         </div>
-                        <div v-if="form.users_schedules.length > 0" class="sm:flex sm:justify-center items-center flex-col space-y-2 pr-9">
+                        <div v-if="form.users_schedules.length > 0" class="sm:flex sm:justify-center items-center flex-col space-y-2 px-3 pr-9">
 
                                 <button v-if="form.users_schedules.length > 0 && userStore.hasPermission('add schedule')" @click="addScheduleTemplate(), showAddScheduleButtonAfterFail = false" class="flex items-center w-full justify-center  sm:ml-0 sm:mt-0 bg-green-600/70 hover:bg-green-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg">
                                     GUARDAR
@@ -696,7 +709,7 @@ onMounted(() => {
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <h1 class="mt-5 text-center text-2xl text-gray-700 font-semibol dark:text-white" style="font-family: 'Abel', sans-serif;">Horarios  <span v-if="selected_department_name"> - {{ selected_department_name }}</span> <span v-if="selected_month_name"> - {{ selected_month_name }}</span> </h1>
-                    <div class="p-2 pt-16 pb-8 grid items-center text-gray-900 dark:text-gray-100 sm:flex sm:justify-between px-2">
+                    <div class="p-2 pt-16 pb-8 grid items-center text-gray-900 dark:text-gray-100 sm:flex sm:justify-between px-2 sm:px-28">
                         <div class="sm:flex sm:justify-center sm:ml-5 grid items-center space-x-5 items_spacing_y w-[350px]"><!-- Dep -->
                             <h4 class="flex ml-5">Departamento:</h4>
                             <form class="flex max-w-sm mx-auto items-center" @submit.prevent="">
@@ -773,7 +786,7 @@ onMounted(() => {
                             </form>
                         </div>
                     </div>
-                    <div class="flex justify-around mb-5 grid_style_legend"> <!-- Legend container -->
+                    <div class="flex justify-around mb-5 grid_style_legend sm:px-28"> <!-- Legend container -->
                         <div class="flex justify-around mx-2 items-center items_spacing_y"> <!-- Legend div -->
                             <div class="w-16 h-6 mr-1.5 today rounded-md"><!-- Today -->
 <!--                                 <p class="flex today_th text-xs">{{ moment().format('DD-MM-YYYY') }}</p> -->
@@ -814,7 +827,7 @@ onMounted(() => {
                     </div>
 
                             <!-- START MULTI TABLES -->
-                <div v-if="(selected_month && !selected_week) || (selected_month && selected_week === 'all')" class="pb-14 grid items-center justify-center text-gray-900 dark:text-gray-100">
+                <div v-if="(selected_month && !selected_week) || (selected_month && selected_week === 'all')" class="pb-4 grid items-center justify-center text-gray-900 dark:text-gray-100">
                     <div v-for="(weekly_schedule, weekly_schedule_index) in weekly_schedules_for_month" :key="weekly_schedule_index" class="relative overflow-x-auto my-5">
                         <h4 v-if="weekly_schedule.schedule_data.schedules.length > 0" class="my-2 mx-1"> Semana: <span class="bold text-violet-400"> {{ week_dates_by_month[weekly_schedule_index].weekNumber }} </span> | <span class="bold text-green-200"> {{ week_dates_by_month[weekly_schedule_index].startDate }} </span> a <span class="bold text-green-200"> {{ week_dates_by_month[weekly_schedule_index].endDate }} </span>  
                             <span v-if="userStore.hasPermission('edit schedules')"> | <button @click="loadLastBurnedImage(), closeEditing()" class="text-yellow-300"><i class="text-md text-yellow-300 fa-solid fa-rotate"></i> Recargar tabla</button> </span>
@@ -912,7 +925,7 @@ onMounted(() => {
                             </tbody>
                         </table>
                         <div v-else class="flex justify-center">
-                            <p v-if="weekly_schedule_index === 2" class="text-green-200">No hay datos sobre el departamento para este mes y semana.</p>
+                            <p v-if="weekly_schedule_index === 2" class="text-red-400 px-3">No hay datos sobre el departamento para este mes y semana.</p>
                         </div>
                     </div>
                 </div>
@@ -921,7 +934,7 @@ onMounted(() => {
                 <!-- START SINGLE TABLE -->
                 <template v-if="weekly_schedule.length > 0 && selected_week !== 'all'">
                     <div v-if="selected_week" class="pb-14 flex items-center justify-center text-gray-900 dark:text-gray-100">
-                        <div v-if="weekly_schedule.length > 0" class="relative overflow-x-auto mt-5">
+                    <div v-if="weekly_schedule.length > 0 && weekly_schedule[0].schedule_data.schedules.length > 0" class="relative overflow-x-auto mt-5">
                                 <h4 v-if="weekly_schedule.length > 0 && selected_week.weekNumber" class="m-2"> Semana: <span class="bold text-violet-400"> {{ selected_week?.weekNumber }} </span> | <span class="bold text-green-200"> {{ selected_week?.startDate }} </span> a <span class="bold text-green-200"> {{ selected_week?.endDate }} </span>  
                                    <span v-if="userStore.hasPermission('edit schedules')"> | <button @click="getWeeklySchedule(selected_week.weekNumber, selected_department_id), closeEditing()" class="text-yellow-300"><i class="text-md text-yellow-300 fa-solid fa-rotate"></i> Recargar tabla</button> </span>
                                     <span v-if="userStore.hasPermission('edit schedules')"> | <button @click="saveChanges(selected_week.weekNumber, selected_department_id, weekly_schedule[0]), closeEditing()" class="text-green-400"><i class="text- text-green-400 fa-solid fa-floppy-disk"></i> Grabar imagen</button> </span>
@@ -1021,7 +1034,7 @@ onMounted(() => {
                                 <p v-else>No hay datos sobre el departamento para este mes y semana.</p>
                             </div>
                             <div v-else-if="!loading" class="flex justify-center pt-14 pb-8">
-                                <p class="text-green-200">No hay datos sobre el departamento para este mes y semana.</p>
+                                <p class="text-red-400 px-3">No hay datos sobre el departamento para este mes y semana.</p>
                             </div>
                         </div>
                     </template>
