@@ -607,7 +607,7 @@ onMounted(() => {
                             <!-- SCHEDULES FORM -->
                             <div class="sm:flex sm:justify-center sm:ml-5 grid items-center space-x-5 items_spacing_y w-[350px]"><!-- Dep -->
                                 <h4 class="flex ml-5">Departamento:</h4>
-                                <select v-if="userStore.hasRole('super_user')" id="departments" v-model="selected_department_id_admin"
+                                <select v-if="userStore.hasRole('super_user') || !userStore.hasPermission('eliminate template') && !userStore.hasPermission('add temlate')" id="departments" v-model="selected_department_id_admin"
                                     @change="fetchDepartmentNameById(selected_department_id_admin), check_button_when_add_schedule_is_open = false;"
                                     class="sm:max-w-[145px] max-w-[350px] min-w-24 flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
                                     <option selected disabled value="">Selecciona un departamento</option>
