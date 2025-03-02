@@ -35,7 +35,7 @@ onMounted(() => {
     const observerConfig = {
       root: null,
       rootMargin: '0px',
-      threshold: 0.2,
+      threshold: 0.6,
     };
 
     const observerCallback = (entries) => {
@@ -79,7 +79,7 @@ onMounted(() => {
                     v-for="(section, index) in sections" 
                     :key="index" 
                     ref="sectionRefs"
-                    class="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-0 transition-opacity duration-500 p-6 sm:px-16 items-center"
+                    class="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-0 transition-opacity-10 duration-500 p-6 sm:px-16 items-center"
                     :class="{ 'opacity-100': isVisible[index] }"
                     >
                     <!-- ... -->
