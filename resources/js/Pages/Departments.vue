@@ -830,7 +830,7 @@ const handleCheckboxChangeHolidaysToBeConfirmed = (vac) => {
 
                 </div>
             </div>
-            <div><button @click="fetchRolesAndPermissionsForUser()">
+            <!-- <div><button @click="fetchRolesAndPermissionsForUser()">
                     <p class="text-green-200">Send to check roles and permissions.</p>
                 </button></div>
             <div><button @click="fetchUsers(selected_department_id)">
@@ -838,7 +838,7 @@ const handleCheckboxChangeHolidaysToBeConfirmed = (vac) => {
                 </button></div>
             <div><button @click="fetchJobRanges">
                     <p class="text-green-200">Send to get All Job Ranges.</p>
-                </button></div>
+                </button></div> -->
         </div>
     </AuthenticatedLayout>
 </template>

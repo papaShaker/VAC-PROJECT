@@ -6,7 +6,7 @@ import { ref, onMounted, nextTick } from 'vue';
 const sections = ref([
   { title: "Has iniciado sesión.", 
     text: "¡Bienvenido a SGVH, el nuevo sistema integral de gestión de tu tiempo en la empresa! \n\nDiseñado para simplificar y optimizar la planificación de vacaciones y horarios, ahora nuestra plataforma te ofrece una experiencia intuitiva y eficiente. \n\nCon nuestro nuevo sistema, visualizarás tus vacaciones y horarios en un instante, permitiéndote planificar con claridad y sin errores. Selecciona días libres con un simple clic, ajusta tus planes y recibe alertas para mantenerte siempre informado.", 
-    image: "/img/SGVH-dashboard2.png" },
+    image: "/img/Homerti-dashboard-bg.png" },
   { title: "Novedades...", 
     text: "Este sistema fomenta la transparencia y la colaboración, facilitando la coordinación de equipos y mejorando la comunicación entre empleados y superiores. Integrando diferentes tipos de contrato y normativas laborales, nos aseguramos que cada empleado tenga acceso a información relevante y precisa sobre su situación particular. Comparte tus planes con tu equipo y experimenta la libertad de una planificación sin complicaciones.", 
     image: "/img/Templates-dashboard.png" },
@@ -82,19 +82,19 @@ onMounted(() => {
                     class="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-0 transition-opacity duration-500 p-6 sm:px-16 items-center"
                     :class="{ 'opacity-100': isVisible[index] }"
                     >
-                            <!-- ... -->
-                        <div v-if="index % 2 === 0" class="text px-4 py-2">
-                            <h1 class="text-2xl text-gray-100 italic" style="font-family: 'Abel', sans-serif;">{{ section.title }}</h1>
-                            <p class="mt-2 text-blue-200 text-justify italic whitespace-pre-line" >{{ section.text }}</p>
-                        </div>
-
-                        <div class="image">
-                            <img :src="section.image" alt="Image" class="w-full rounded-lg">
-                        </div>
+                    <!-- ... -->
+                    <div v-if="index % 2 === 0" class="text px-4 py-2">
+                        <h1 class="text-2xl text-gray-100 italic" style="font-family: 'Abel', sans-serif;">{{ section.title }}</h1>
+                        <p class="mt-2 text-blue-200 text-justify italic whitespace-pre-line bg-slate-600 bg-opacity-15 rounded-xl p-5 border-1 border-slate-600 shadow-md shadow-slate-500/20">{{ section.text }}</p>
+                    </div>
+                    
+                    <div class="image">
+                        <img :src="section.image" alt="Image" class="w-full rounded-lg">
+                    </div>
 
                         <div v-if="index % 2 !== 0" class="text px-4 py-2">
                             <h2 class="text-2xl text-gray-100 italic" style="font-family: 'Abel', sans-serif;">{{ section.title }}</h2>
-                            <p class="mt-2 text-blue-200  text-justify italic whitespace-pre-line">{{ section.text }}</p>
+                            <p class="mt-2 text-blue-200  text-justify italic whitespace-pre-line bg-slate-600 bg-opacity-15 rounded-xl p-5 border-1 border-slate-600 shadow-md shadow-slate-500/20">{{ section.text }}</p>
                         </div>
                     </div>
                 </div>

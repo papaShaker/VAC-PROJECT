@@ -482,6 +482,7 @@ onMounted(() => {
                                             class="w-full p-1 border text-gray-950 border-gray-300 rounded"
                                             />
                                         </div>
+                                        <!-- ADD DEPARTMENT SECTION -->
                                         <div class="flex flex-col justify-center text-gray-900 dark:text-gray-100">
                                             <button v-if="!edit_state.add_dep_button_is_active" @click="edit_state.add_dep_button_is_active=!edit_state.add_dep_button_is_active" class="text-md border border-gray-700 text-green-400 bg-slate-600 rounded p-1 my-2" style="font-family: 'Abel', sans-serif;"><i class="fa-solid fa-plus text-md text-green-400"></i> AÑADIR DEPARTAMENTO</button>
                                             <button v-if="edit_state.add_dep_button_is_active" @click="reset_add_dep_state()" class="font-bold text-md border border-gray-700 text-red-400 bg-slate-600 rounded p-1 mt-2" style="font-family: 'Abel', sans-serif;"><i class="fa-solid fa-minus text-md text-red-400"></i> CANCELAR </button>
@@ -514,6 +515,7 @@ onMounted(() => {
                                                     </div>
                                             </template>
                                         </div>
+                                        <!-- END ADD DEPARTMENT SECTION -->
                                         <div class="sm:w-[32rem] w-[24rem] sm:text-md text-sm text-left text-gray-500 dark:text-gray-400">
                                             <form>
                                             </form>

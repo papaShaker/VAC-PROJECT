@@ -456,7 +456,7 @@ onMounted(async () => {
                         </div>
                     </template>
                 </ModalInfoHolidays>
-                <div><button @click="getUser">
+<!--                 <div><button @click="getUser">
                             <p class="text-green-200">Send request for autenticated user.</p>
                         </button></div>
 
@@ -466,7 +466,7 @@ onMounted(async () => {
 
                 <div><button @click="getHolidaysToBeConfirmed">
                     <p class="text-green-200">Get to be confirmed holidays.</p>
-                </button></div>
+                </button></div> -->
             </div>
         </div>
     </div>
