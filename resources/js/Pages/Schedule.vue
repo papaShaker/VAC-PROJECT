@@ -667,7 +667,7 @@ onMounted(() => {
                         </div>
                         <div v-if="form.users_schedules.length > 0" class="sm:flex sm:justify-center items-center flex-col space-y-2 px-3 pr-9">
 
-                                <button v-if="form.users_schedules.length > 0 && userStore.hasPermission('add schedule')" @click="addScheduleTemplate(), showAddScheduleButtonAfterFail = false" class="flex items-center w-full justify-center  sm:ml-0 sm:mt-0 bg-green-600/70 hover:bg-green-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg">
+                                <button v-if="form.users_schedules.length > 0 && userStore.hasPermission('add template')" @click="addScheduleTemplate(), showAddScheduleButtonAfterFail = false" class="flex items-center w-full justify-center  sm:ml-0 sm:mt-0 bg-green-600/70 hover:bg-green-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg">
                                     GUARDAR
                                 </button>
                                 <button v-if="form.users_schedules.length > 0" @click="form.reset(), check_button_when_add_schedule_is_open = false" class="flex items-center w-full justify-center sm:ml-0 sm:mt-0 bg-red-600/70 hover:bg-red-500/60 text-white font-bold py-2 px-4 mt-4 rounded-lg">
