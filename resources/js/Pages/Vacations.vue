@@ -142,7 +142,7 @@ const selectDay = (day, key, month) => {
         }
         if (holidays_data.holiday_hours_to_be_requested >= (day.range_working_hours / 2) || day.day_selected == 1) {
             console.log('ENTRA -> 3');
-            if(holidays_data.pending_holidays_total_to_be_requested <= 0) {
+            if(holidays_data.pending_holidays_total_to_be_requested <= 0 && day.day_selected === 0) {
                 console.log('ENTRA -> 3.1');
                 toast.warning('No te quedan más días por solicitar.', toast_options/*  toast_warning_options */);
                 return;
@@ -301,7 +301,7 @@ onMounted(async () => {
                         <div class="flex justify-around items-center mx-2 grid_style"><!-- Vacations DATA div -->
                             <div class="col-md-12 flex justify-around flex-wrap mb-2 m-1 items_spacing_y" v-if="holidays_data.hours_per_contract != undefined" style="font-family: 'Abel', sans-serif;">
                                 <div class="tooltip-mvc text-xl p-1 text-gray-200 bg-gray-700 text-center flex items-center justify-center w-full rounded-[5px] z-10" :tooltip-mvc="holidays_data.hours_per_contract.toFixed(2) + ' horas.'">
-                                    Vacaciones:<span class="ml-2">{{ (holidays_data.hours_per_contract / holidays_data.current_working_hours).toFixed(0) }}</span>
+                                    Vacaciones:<span class="ml-2">{{ (holidays_data.hours_per_contract / holidays_data.current_working_hours).toFixed(2) }}</span>
                                 </div>
                             </div>
                             <div class="col-md-12 flex justify-around flex-wrap mb-2 m-1 items_spacing_y" v-if="holidays_data.accumulated_holidays_days != undefined" style="font-family: 'Abel', sans-serif;">
@@ -336,7 +336,7 @@ onMounted(async () => {
                             </div>
                             <div class="col-md-12 flex justify-around flex-wrap mb-2 m-1 items_spacing_y" style="font-family: 'Abel', sans-serif;">
                                 <div class="tooltip-mvc text-xl p-1 text-gray-200 bg-gray-700 text-center flex items-center justify-center w-full rounded-[5px] z-10" :tooltip-mvc="(holidays_data.pending_holidays_total_to_be_requested * holidays_data.current_working_hours).toFixed(2) + ' horas.'">
-                                    Pe. Solicitar:<span class="ml-2">{{ Math.round(holidays_data.pending_holidays_total_to_be_requested).toFixed(0) }}</span>
+                                    Pe. Solicitar:<span class="ml-2">{{ holidays_data.pending_holidays_total_to_be_requested }}</span>
                                 </div>
                             </div>
                         </div>
