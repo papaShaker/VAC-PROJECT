@@ -417,128 +417,132 @@ const handleCheckboxChangeHolidaysToBeConfirmed = (vac) => {
                         
     <!-- START TO BE CONFIRMED VACATIONS -->
 
-                    <div class="relative overflow-x-auto my-5"
-                        v-if="loaded_to_be_confirmed_data">
-                        <table class="border-collapse border border-gray-100 text-sm text-left rtl:text-right text-gray-100 dark:text-gray-400">
-                            <thead class="sm:w-[32rem] w-[24rem] text-xs border border-gray-100 text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                                <tr>
-                                    <th class="border border-gray-100">Usuario</th>
-                                    <th class="border border-gray-100">Contrato</th>
-                                    <th class="border border-gray-100">Zona</th>
-                                    <th class="border border-gray-100">Vacaciones</th>
-                                    <th class="border border-gray-100">Acumuladas</th>
-                                    <th class="border border-gray-100">Extras</th>
-                                    <th class="border border-gray-100">Confirmadas</th>
-                                    <th class="border border-gray-100">Disfrutadas</th>
-                                    <th class="border border-gray-100">Pagadas</th>
-                                    <th class="border border-gray-100">Pe. Disfrutar</th>
-                                    <th class="border border-gray-100">Pe. Confirmar</th>
-                                    <th class="border border-gray-100">Pe. Solicitar</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr class="border border-gray-200 bg-gray-700" v-for="(item, index) in holidays_to_be_confirmed_list" :key="index">
-                                    <td class="border border-gray-500">
-                                        <span @click="item.holidays_state.pending_holiday_hours_to_be_confirmed > 0 ? manageHolidaysToBeConfirmed(item) : false" class="tooltip-mvc">
-                                            <a
-                                                class="linkUsr text-gray-400">
-                                                {{ item.user_info.name }}
-                                            </a>
-                                        </span>
-                                    </td>
-                                    <td class="border border-gray-600">
-                                        <div class="to_be_confirmed flex justify-center">
-                                            <a class="jobRangeIcon" @click="manageRanges(item.user_info)"> <!--  -->
-                                                <i class="fas fa-file-contract fa-2x text-[#39a33c]"></i>
-                                            </a>
-                                        </div>
-                                    </td>
-                                    <td class="border border-gray-600">
-                                        <div class="to_be_confirmed tooltip-mvc">
-                                            <a class="jobRangeIcon"
-                                               > <!-- @click="gestionarZonaFestius(item.user_info)" -->
-                                                <span v-if="item.user_info.nonworkingdayzone">{{ item.user_info.nonworkingdayzone.zone
-                                                    }}</span>
-                                                <span class="red" v-else>No configurada</span>
-                                            </a> <!-- v-if="comanderVacances" -->
-                                        </div>
-                                    </td>
-                                    <td class="border border-gray-600">
-                                        <div class="numeric_Container">
-                                            <span data-bs-toggle="tooltip" data-placement="bottom"
-                                                :title="item.holidays_state.hours_per_contract.toFixed(2) + ' horas.'"
-                                                class="numeric">
-                                                {{ (item.holidays_state.hours_per_contract /
-                                                    item.holidays_state.current_working_hours).toFixed(0) }}
+                    <div class="relative overflow-x-auto my-5" v-if="loaded_to_be_confirmed_data">
+                        <div v-if="holidays_to_be_confirmed_list.length">
+                            <table class="border-collapse border border-gray-100 text-sm text-left rtl:text-right text-gray-100 dark:text-gray-400">
+                                <thead class="sm:w-[32rem] w-[24rem] text-xs border border-gray-100 text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                                    <tr>
+                                        <th class="border border-gray-100">Usuario</th>
+                                        <th class="border border-gray-100">Contrato</th>
+                                        <th class="border border-gray-100">Zona</th>
+                                        <th class="border border-gray-100">Vacaciones</th>
+                                        <th class="border border-gray-100">Acumuladas</th>
+                                        <th class="border border-gray-100">Extras</th>
+                                        <th class="border border-gray-100">Confirmadas</th>
+                                        <th class="border border-gray-100">Disfrutadas</th>
+                                        <th class="border border-gray-100">Pagadas</th>
+                                        <th class="border border-gray-100">Pe. Disfrutar</th>
+                                        <th class="border border-gray-100">Pe. Confirmar</th>
+                                        <th class="border border-gray-100">Pe. Solicitar</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="border border-gray-200 bg-gray-700" v-for="(item, index) in holidays_to_be_confirmed_list" :key="index">
+                                        <td class="border border-gray-500">
+                                            <span @click="item.holidays_state.pending_holiday_hours_to_be_confirmed > 0 ? manageHolidaysToBeConfirmed(item) : false" class="tooltip-mvc">
+                                                <a
+                                                    class="linkUsr text-gray-400">
+                                                    {{ item.user_info.name }}
+                                                </a>
                                             </span>
-                                        </div>
-                                    </td>
-                                    <td class="border border-gray-600">
-                                        <div class="numeric_Container">
-                                            <span class="numeric">{{ item.holidays_state.accumulated_holidays_days }}</span>
-                                        </div>
-                                    </td>
-                                    <td class="border border-gray-600">
-                                        <div class="numeric_Container">
-                                            <span data-bs-toggle="tooltip" data-placement="bottom"
-                                                :title="item.holidays_state.hours_per_extra_days.toFixed(2) + ' horas.'"
-                                                class="numeric">
-                                                {{ item.holidays_state.extra_holidays_days }}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td class="border border-gray-600">
-                                        <div class="numeric_Container">
-                                            <span class="numeric">
-                                                {{ (item.holidays_state.confirmed_holiday_hours /
-                                                    item.holidays_state.current_working_hours).toFixed(0) }}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td class="border border-gray-600">
-                                        <div class="numeric_Container">
-                                            <span data-bs-toggle="tooltip" data-placement="bottom"
-                                                :title="item.holidays_state.enjoyed_holiday_hours.toFixed(2) + ' horas.'"
-                                                class="numeric">
-                                                {{ item.holidays_state.enjoyed_holidays_days }}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td class="border border-gray-600">
-                                        <div class="numeric_Container">
-                                            <span class="numeric">{{ item.holidays_state.paid_holidays_days }}</span>
-                                        </div>
-                                    </td>
-                                    <td class="border border-gray-600">
-                                        <div class="numeric_Container">
-                                            <span class="numeric">
-                                                {{ (item.holidays_state.pending_holiday_hours_to_be_enjoyed /
-                                                    item.holidays_state.current_working_hours).toFixed(0) }}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td class="border border-gray-600">
-                                        <div class="numeric_Container">
-                                            <span class="numeric to_be_confirmed tooltip-mvc"
-                                                @click="item.holidays_state.pending_holiday_hours_to_be_confirmed > 0 ? manageHolidaysToBeConfirmed(item) : false"
-                                                :class="[item.holidays_state.pending_holiday_hours_to_be_confirmed > 0 ? 'pendientes' : '']">
-                                                {{ (item.holidays_state.pending_holiday_hours_to_be_confirmed /
-                                                    item.holidays_state.current_working_hours).toFixed(0) }}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td class="border border-gray-600">
-                                        <div class="numeric_Container">
-                                            <span data-bs-toggle="tooltip" data-placement="bottom"
-                                                :title="item.holidays_state.holiday_hours_to_be_requested.toFixed(2) + ' horas.'"
-                                                class="numeric">
-                                                {{ item.holidays_state.pending_holidays_total_to_be_requested }}
-                                            </span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                                        </td>
+                                        <td class="border border-gray-600">
+                                            <div class="to_be_confirmed flex justify-center">
+                                                <a class="jobRangeIcon" @click="manageRanges(item.user_info)"> <!--  -->
+                                                    <i class="fas fa-file-contract fa-2x text-[#39a33c]"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                        <td class="border border-gray-600">
+                                            <div class="to_be_confirmed tooltip-mvc">
+                                                <a class="jobRangeIcon"
+                                                > <!-- @click="gestionarZonaFestius(item.user_info)" -->
+                                                    <span v-if="item.user_info.nonworkingdayzone">{{ item.user_info.nonworkingdayzone.zone
+                                                        }}</span>
+                                                    <span class="red" v-else>No configurada</span>
+                                                </a> <!-- v-if="comanderVacances" -->
+                                            </div>
+                                        </td>
+                                        <td class="border border-gray-600">
+                                            <div class="numeric_Container">
+                                                <span data-bs-toggle="tooltip" data-placement="bottom"
+                                                    :title="item.holidays_state.hours_per_contract.toFixed(2) + ' horas.'"
+                                                    class="numeric">
+                                                    {{ (item.holidays_state.hours_per_contract /
+                                                        item.holidays_state.current_working_hours).toFixed(0) }}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="border border-gray-600">
+                                            <div class="numeric_Container">
+                                                <span class="numeric">{{ item.holidays_state.accumulated_holidays_days }}</span>
+                                            </div>
+                                        </td>
+                                        <td class="border border-gray-600">
+                                            <div class="numeric_Container">
+                                                <span data-bs-toggle="tooltip" data-placement="bottom"
+                                                    :title="item.holidays_state.hours_per_extra_days.toFixed(2) + ' horas.'"
+                                                    class="numeric">
+                                                    {{ item.holidays_state.extra_holidays_days }}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="border border-gray-600">
+                                            <div class="numeric_Container">
+                                                <span class="numeric">
+                                                    {{ (item.holidays_state.confirmed_holiday_hours /
+                                                        item.holidays_state.current_working_hours).toFixed(0) }}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="border border-gray-600">
+                                            <div class="numeric_Container">
+                                                <span data-bs-toggle="tooltip" data-placement="bottom"
+                                                    :title="item.holidays_state.enjoyed_holiday_hours.toFixed(2) + ' horas.'"
+                                                    class="numeric">
+                                                    {{ item.holidays_state.enjoyed_holidays_days }}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="border border-gray-600">
+                                            <div class="numeric_Container">
+                                                <span class="numeric">{{ item.holidays_state.paid_holidays_days }}</span>
+                                            </div>
+                                        </td>
+                                        <td class="border border-gray-600">
+                                            <div class="numeric_Container">
+                                                <span class="numeric">
+                                                    {{ (item.holidays_state.pending_holiday_hours_to_be_enjoyed /
+                                                        item.holidays_state.current_working_hours).toFixed(0) }}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="border border-gray-600">
+                                            <div class="numeric_Container">
+                                                <span class="numeric to_be_confirmed tooltip-mvc"
+                                                    @click="item.holidays_state.pending_holiday_hours_to_be_confirmed > 0 ? manageHolidaysToBeConfirmed(item) : false"
+                                                    :class="[item.holidays_state.pending_holiday_hours_to_be_confirmed > 0 ? 'pendientes' : '']">
+                                                    {{ (item.holidays_state.pending_holiday_hours_to_be_confirmed /
+                                                        item.holidays_state.current_working_hours).toFixed(0) }}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="border border-gray-600">
+                                            <div class="numeric_Container">
+                                                <span data-bs-toggle="tooltip" data-placement="bottom"
+                                                    :title="item.holidays_state.holiday_hours_to_be_requested.toFixed(2) + ' horas.'"
+                                                    class="numeric">
+                                                    {{ item.holidays_state.pending_holidays_total_to_be_requested }}
+                                                </span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div v-else>
+                            <p class="text-red-400">Actualmente no hay vacaciones por gestionar.</p>
+                        </div>
                     </div>
 
                     <!-- MODAL UPDATE VACATIONS START -->

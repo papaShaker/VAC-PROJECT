@@ -109,9 +109,9 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // Assign roles to specific users (update these user IDs as needed)
         $superUser1 = User::find(2);
-        $boss1Informatica = User::find(3);
-        $boss2Booking = User::find(16);
-        $boss3CustomerService = User::find(4);
+        $boss1Informatica = User::find(28);
+        $boss2Booking = User::find(9);
+        $boss3CustomerService = User::find(8);
         $rrhhUser = User::find(15);
         $employee1 = User::find(5);
 

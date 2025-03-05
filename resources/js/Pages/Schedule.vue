@@ -204,6 +204,7 @@ const getWeeklySchedulesForMonth = async (department_id, year, month) => {
 }
 
 const checkForScheduleTemplates = async (department_id, users_available) => {
+    console.log("CHECK FOR SCHEDULES");
     existing_template_data.length = 0;
     Object.keys(existing_template_error).forEach((key) => delete existing_template_error[key]);
     console.log(department_id);
@@ -212,8 +213,11 @@ const checkForScheduleTemplates = async (department_id, users_available) => {
     await axios.get('/api/schedules_template_check/' + department_id + '/' + users_available).then((response) => {
         console.log(response.data);
         if(response.data.status === "Error"){
+            console.log("ENTRA EN IF");
             Object.assign(existing_template_error, response.data);
             showAddScheduleButton.value = true;
+            showAddScheduleButtonAfterFail.value = true;
+            console.log("showAddSheduleButton: " + showAddScheduleButton.value + showAddScheduleButtonAfterFail.value)
         }
         else {
         existing_template_data.push(...response.data);

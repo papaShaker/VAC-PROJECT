@@ -209,7 +209,7 @@ const requestHolidays = async (event) => {
     } catch (error) {
         // Handle error (optional)
         console.error("Error requesting holidays:", error);
-        toast.error("There was an error requesting your holidays.", toast_options);
+        toast.error("Ha ocurrido un error durante la solicitud.", toast_options);
     } finally {
         requesting_holidays.value = false;
     }

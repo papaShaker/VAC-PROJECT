@@ -542,7 +542,7 @@ onMounted(() => {
                                         </div>
                                         <!-- ADD DEPARTMENT SECTION -->
                                         <div class="flex flex-col justify-center text-gray-900 dark:text-gray-100">
-                                            <button v-if="!edit_state.add_dep_button_is_active" @click="edit_state.add_dep_button_is_active=!edit_state.add_dep_button_is_active" class="text-md border border-gray-700 text-green-400 bg-slate-600 rounded p-1 my-2" style="font-family: 'Abel', sans-serif;"><i class="fa-solid fa-plus text-md text-green-400"></i> AÑADIR DEPARTAMENTO</button>
+                                            <button v-if="userStore.hasPermission('edit departments') && !edit_state.add_dep_button_is_active" @click="edit_state.add_dep_button_is_active=!edit_state.add_dep_button_is_active" class="text-md border border-gray-700 text-green-400 bg-slate-600 rounded p-1 my-2" style="font-family: 'Abel', sans-serif;"><i class="fa-solid fa-plus text-md text-green-400"></i> AÑADIR DEPARTAMENTO</button>
                                             <button v-if="edit_state.add_dep_button_is_active" @click="reset_add_dep_state()" class="font-bold text-md border border-gray-700 text-red-400 bg-slate-600 rounded p-1 mt-2" style="font-family: 'Abel', sans-serif;"><i class="fa-solid fa-minus text-md text-red-400"></i> CANCELAR </button>
                                             <button v-if="edit_state.add_dep_button_is_active && validateNothingEmptyAddDepartment()" @click="insertNewDepartment()" class="font-bold text-md border border-gray-700 text-green-400 bg-slate-600 rounded p-1 my-1" style="font-family: 'Abel', sans-serif;"><i class="fa-solid fa-check text-md text-green-400"></i> GUARDAR </button>
                                             <template v-if="edit_state.add_dep_button_is_active">
@@ -581,7 +581,7 @@ onMounted(() => {
                                                     <th class="text-center text-gray-900 dark:text-gray-100">DEPARTAMENTO</th>
                                                     <th class="text-center text-gray-900 dark:text-gray-100">MAX VAC/DÍA</th>
                                                     <th class="text-center text-gray-900 dark:text-gray-100">VAC/MES</th>
-                                                    <th class="text-center text-gray-900 dark:text-gray-100">EDITAR</th>
+                                                    <th v-if="userStore.hasPermission('edit departments')" class="text-center text-gray-900 dark:text-gray-100">EDITAR</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -589,7 +589,7 @@ onMounted(() => {
                                                     <td class="text-center text-gray-900 dark:text-green-300 py-1"> {{ dep.id }} </td>
                                                     <!-- DEP.NAME SELECTOR -->
                                                     <td class="text-center text-gray-900 dark:text-gray-100">
-                                                        <template v-if="isRowBeingEdited(dep_index, 1) && edit_state.row === dep_index && edit_state.table === 1">
+                                                        <template v-if="userStore.hasPermission('edit departments') && isRowBeingEdited(dep_index, 1) && edit_state.row === dep_index && edit_state.table === 1">
                                                             <input type="text" v-model="edit_state.selected_department_name" @input="validateTextInputDepName" :placeholder="dep.name" class="w-24 text-xs text-left bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded p-1">
                                                         </template>
                                                         <template v-else>
@@ -598,7 +598,7 @@ onMounted(() => {
                                                     </td>
                                                     <!-- MAX VAC SELECTOR -->
                                                     <td class="text-center text-gray-900 dark:text-gray-100">
-                                                        <template v-if="isRowBeingEdited(dep_index, 1) && edit_state.row === dep_index && edit_state.table === 1">
+                                                        <template v-if="userStore.hasPermission('edit departments') && isRowBeingEdited(dep_index, 1) && edit_state.row === dep_index && edit_state.table === 1">
                                                             <input type="number" min="0" max="5" v-model="edit_state.selected_department_users_same_day_holidays" @input="validateInputMaxVacationsPerDay" :placeholder="dep?.users_same_day_holidays" class="w-12 text-xs text-left bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded p-1">
                                                         </template>
                                                         <template v-else>
@@ -607,7 +607,7 @@ onMounted(() => {
                                                     </td>
                                                     <!-- ZONE SELECTOR -->
                                                     <td class="text-center text-gray-900 dark:text-gray-100">
-                                                        <template v-if="isRowBeingEdited(dep_index, 1) && edit_state.row === dep_index && edit_state.table === 1">
+                                                        <template v-if="userStore.hasPermission('edit departments') &&isRowBeingEdited(dep_index, 1) && edit_state.row === dep_index && edit_state.table === 1">
                                                             <input type="number" min="0" max="5" v-model="edit_state.selected_department_holidays_per_month" @input="validateInputVacationsPerMonth" :placeholder="dep?.holidays_per_month" class="w-12 text-xs text-left bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded p-1">
                                                         </template>
                                                         <template v-else>
@@ -615,8 +615,8 @@ onMounted(() => {
                                                         </template>
                                                     </td>
 
-                                                    <td class="text-center text-gray-900 dark:text-gray-100">
-                                                        <template v-if="isRowBeingEdited(dep_index, 1) && edit_state.row === dep_index && edit_state.table === 1">
+                                                    <td v-if="userStore.hasPermission('edit departments')" class="text-center text-gray-900 dark:text-gray-100">
+                                                        <template v-if="userStore.hasPermission('edit departments') && isRowBeingEdited(dep_index, 1) && edit_state.row === dep_index && edit_state.table === 1">
                                                             <button @click="saveDepartmentChanges(dep.id)">
                                                                 <i class="mx-1 text-lg text-green-400 fa-solid fa-check"></i>
                                                             </button>
