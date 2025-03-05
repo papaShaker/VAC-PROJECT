@@ -161,29 +161,38 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/manager/update/holidays', [HolidayController::class, 'holidaysUpdateState'])
         ->name('updateHolidays');
 
-    Route::put('/update/department/{id}', [DepartmentController::class, 'update'])
-        ->name('updateDep');
-
-    Route::post('/insert/department', [DepartmentController::class, 'store'])
-        ->name('storeDep');
-    
-
-    /* ---ADMINISTRATION ROUTES--- */
-    // This route renders the 'VacationsManager' view
-    Route::get('/fetch/users', [UserController::class, 'getAllUsers'])
+        
+        /* ---ADMINISTRATION ROUTES--- */
+        // This route renders the 'VacationsManager' view
+        Route::get('/fetch/users', [UserController::class, 'getAllUsers'])
         ->name('fetchUsers');
-
-    Route::get('/fetch/departments', [ManagerController::class, 'getDepartments'])
+        
+        Route::get('/fetch/users/department', [UserController::class, 'getAllUsersForDepartment'])
+        ->name('fetchUsersForDepartment');
+        
+        Route::get('/fetch/departments', [ManagerController::class, 'getDepartments'])
         ->name('fetchDepartments');
-
-    Route::get('/fetch/zones', [ManagerController::class, 'getZones'])
+        
+        Route::get('/fetch/zones', [ManagerController::class, 'getZones'])
         ->name('fetchZones');
-
-    Route::put('/update/user/{user_id}', [UserController::class, 'updateUser'])
+        
+        Route::put('/update/user/{user_id}', [UserController::class, 'updateUser'])
         ->name('updateUser');
-
-    /* API */ Route::get('api/allJobRanges', [JobRangeController::class, 'getAll'])
+        
+        Route::put('/update/department/{id}', [DepartmentController::class, 'update'])
+            ->name('updateDep');
+    
+        Route::post('/insert/department', [DepartmentController::class, 'store'])
+            ->name('storeDep');
+        
+/* API */ Route::get('api/allJobRanges', [JobRangeController::class, 'getAll'])
         ->name('getAllJobRanges');
+
+        Route::get('getUsersJobRanges', [JobRangeController::class, 'getUsersJobRanges'])
+        ->name('getUsersJobRanges');
+
+        Route::get('getUsersJobRanges/department', [JobRangeController::class, 'getUsersJobRangesForDepartment'])
+        ->name('getUsersJobRangesForDepartment');
 });
 
 

@@ -58,6 +58,20 @@ class UserController extends Controller
         return $users;
     }
 
+    public function getAllUsersForDepartment()
+    {
+        $user_dep = auth() -> user() ->department;
+        $users = User::select('id', 'name', 'department', 'holiday_zone')
+            ->with([
+                'department:id,name',
+                'nonworkingdayzone:id,zone'
+            ])
+            ->where('department', $user_dep)
+            ->orderBy('name')
+            ->get();
+        return $users;
+    }
+
     public function updateUser(int $id, Request $request)
     {
         $user = User::find($id);

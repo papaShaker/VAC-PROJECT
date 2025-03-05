@@ -34,7 +34,7 @@ class DepartmentController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'users_same_day_holidays' => 'required|integer|min:0',
-            'holidays_per_month' => 'required|integer|min:0',
+            'holidays_per_month' => 'required|numeric|min:0',
         ]);
 
         try {
@@ -59,7 +59,7 @@ class DepartmentController extends Controller
         $request->validate([
             'name' => 'required|string|max:255|unique:departments,name',
             'users_same_day_holidays' => 'required|integer|min:0',
-            'holidays_per_month' => 'required|integer|min:0',
+            'holidays_per_month' => 'required|numeric|min:0',
         ]);
 
         try {

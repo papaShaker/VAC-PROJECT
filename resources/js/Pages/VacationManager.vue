@@ -22,6 +22,11 @@ const non_working_days_toggled = ref(false);
 const extra_days_toggled = ref(false);
 const extra_day_types_toggled = ref(false);
 const users = ref([]);
+const currentPage = ref(1);
+const pageSize = 10; // Number of users per page
+const job_ranges = ref([]);
+const currentPageContracts = ref(1);
+const pageSizeContracts = 5; // Number of users per page
 const departments = ref([]); // Store fetched departments
 const zones = ref([]); // Store fetched zones
 const is_editing = ref(false);
@@ -40,11 +45,12 @@ const edit_state = reactive({
 
 });
 const searchQuery = ref('');
+const searchQueryContracts = ref('')
 const searchQueryDepartments = ref('');
 
 const startEditing = (row_index, table_index) => {
-    console.log("StartEditing --> Table index: " + table_index);
-    console.log("StartEditing --> Row index: " + row_index);
+    //console.log("StartEditing --> Table index: " + table_index);
+    //console.log("StartEditing --> Row index: " + row_index);
     is_editing.value = true;
 
     edit_state.row = row_index;
@@ -57,13 +63,10 @@ const startEditing = (row_index, table_index) => {
 
     else if(table_index === 1){
     edit_state.selected_department_name = departments.value[row_index]?.name || null;
-    console.log("selected_department_name: " + edit_state.selected_department_name);
+    //console.log("selected_department_name: " + edit_state.selected_department_name);
     edit_state.selected_department_users_same_day_holidays = departments.value[row_index]?.selected_department_users_same_day_holidays || null;
     edit_state.selected_department_holidays_per_month = departments.value[row_index]?.selected_department_holidays_per_month || null;
     }
-
-
-
 };
 
 const closeEditing = (row_index, table_index) => {
@@ -82,7 +85,13 @@ const isRowBeingEdited = (row_index, table_index) => {
 
 /* USERS FUNCTIONS */
 const fetchUsers = () => {
-    axios.get('/fetch/users').then((response) => {
+    let url;
+    if(!userStore.hasRole('super_user') || !userStore.hasRole('RRHH')){
+        url = '/fetch/users';
+    } else {
+        url = '/fetch/users/department';
+    }
+    axios.get(url).then((response) => {
         users.value = response.data;
     }).catch(error => {
         console.error('Error', error);
@@ -97,8 +106,8 @@ const fetchDepartmentsAndZones = async () => {
         ]);
         departments.value = departmentsData.data;
         zones.value = zonesData.data;
-        console.log(departments.value);
-        console.log(zones.value);
+        //console.log(departments.value);
+        //console.log(zones.value);
     } catch (error) {
         console.error("Ha surgido un error:", error);
     }
@@ -110,7 +119,7 @@ const saveEmployeesChanges = async (user_id) => {
             department_id: edit_state.selected_department,
             nonworkingdayzone_id: edit_state.selected_zone,
         };
-        console.log(updatedUser);
+        //console.log(updatedUser);
         await axios.put(`/update/user/${user_id}`, updatedUser); // Replace with your API endpoint
 
         // Update the user in the table (Optimistic UI update)
@@ -129,8 +138,15 @@ const saveEmployeesChanges = async (user_id) => {
     }
 };
 
+const paginatedUsers = computed(() => {
+    const start = (currentPage.value - 1) * pageSize;
+    const end = start + pageSize;
+    return filterUsersByName().slice(start, end);
+});
 
-
+const totalPages = computed(() => {
+    return Math.ceil(users.value.length / pageSize);
+});
 
 /* DEPARTMENT FUNCTIONS */
 const saveDepartmentChanges = async (dep_id) => {
@@ -176,6 +192,8 @@ const insertNewDepartment = async () => {
             holidays_per_month: edit_state.add_dep_max_vac_per_month
         };
 
+        console.log(newDepartment);
+
         await axios.post("/insert/department", newDepartment);
 
         reset_add_dep_state();// Reset fields and hide input fields after successful insert
@@ -194,6 +212,31 @@ const reset_add_dep_state = () => {
 }
 
 /* CONTRACT FUNCTIONS */
+
+const fetchJobRanges = () => {
+    let url;
+    if(!userStore.hasRole('super_user') || !userStore.hasRole('RRHH')){
+        url = 'getUsersJobRanges';
+    } else {
+        url = 'getUsersJobRanges/department';
+    }
+    axios.get('getUsersJobRanges').then((response) => {
+        console.log(response.data);
+        job_ranges.value = response.data;
+    }).catch(error => {
+        console.error('Error', error);
+    });
+}
+
+const paginatedContracts = computed(() => {
+    const startContracts = (currentPageContracts.value - 1) * pageSizeContracts;
+    const endContracts = startContracts + pageSizeContracts;
+    return filteredJobRanges.value.slice(startContracts, endContracts);
+});
+
+const totalPagesContracts = computed(() => {
+    return Math.ceil(filteredJobRanges.value.length / pageSizeContracts);
+});
 
 /* CONTRACT TYPE FUNCTIONS */
 
@@ -316,11 +359,21 @@ const filterDepartmentsByName = () => {
       );
 };
 
+const filteredJobRanges = computed(() => {
+  if (!Array.isArray(job_ranges.value)) return [];
+
+  return job_ranges.value.filter(job_range => 
+    job_range.user_range &&
+    job_range.user_range.name.toLowerCase().includes(searchQueryContracts.value.toLowerCase())
+  );
+});
+
 /* ON MOUNTED */
 
 onMounted(() => {
     fetchUsers();
     fetchDepartmentsAndZones();
+    fetchJobRanges();
 });
 
 </script>
@@ -388,7 +441,7 @@ onMounted(() => {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <tr v-for="(user, user_index) in filterUsersByName()" :key="user.id" class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                                                <tr v-for="(user, user_index) in paginatedUsers" :key="user.id" class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
                                                     <td class="text-center text-gray-900 dark:text-green-300 py-1">{{ user.id }}</td>
                                                     <td class="text-center text-gray-900 dark:text-gray-100">{{ user.name }}</td>
                                                     <!-- DEPARTMENT SELECTOR -->
@@ -432,6 +485,11 @@ onMounted(() => {
                                                 </tr>
                                             </tbody>
                                         </table>
+                                        <div class="sm:w-[32rem] w-[24rem] sm:text-md text-sm text-left text-gray-100 dark:text-gray-400 bg-slate-600 px-2">
+                                            <button class="text-gray-500 border rounded px-1 bg-slate-200" :disabled="currentPage === 1" :class="[(currentPage===1) ? 'bg-slate-800' : '']" @click="currentPage--">Anterior</button>
+                                            <span class="text-gray-100"> Pág. <<<span class="font-bold text-yellow-400 text-md">{{ currentPage }}</span> de {{ totalPages }}>> </span>
+                                            <button class="text-gray-500 border rounded px-1 bg-slate-200" :disabled="currentPage === totalPages" :class="[(currentPage===totalPages) ? 'bg-slate-800' : '']" @click="currentPage++"> Siguiente</button>
+                                        </div>
                                     </div>
                                     <!-- END SLOT -->
 
@@ -516,10 +574,6 @@ onMounted(() => {
                                             </template>
                                         </div>
                                         <!-- END ADD DEPARTMENT SECTION -->
-                                        <div class="sm:w-[32rem] w-[24rem] sm:text-md text-sm text-left text-gray-500 dark:text-gray-400">
-                                            <form>
-                                            </form>
-                                        </div>
                                         <table class="sm:w-[32rem] w-[24rem] sm:text-md text-sm text-left text-gray-500 dark:text-gray-400 bg-slate-600">
                                             <thead>
                                                 <tr class="justify-center item-center">
@@ -616,11 +670,119 @@ onMounted(() => {
                                         </label>
                                     </div>
                                 </div>
-                                <div v-if="contracts_toggled" class="p-2 pb-8 bg-gray-800 grid justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
+                                <div v-if="contracts_toggled" class=" overflow-hidden p-2 pb-8 bg-gray-800 grid justify-center items-center space-x-5 text-gray-900 dark:text-gray-100">
 
                                     <!-- SLOT -->
-                                    <div class="sm:flex sm:justify-between items-center grid">
-                                        SLOT
+                                    <div class="bg-gray-800">
+                                        <!-- Campo de búsqueda -->
+                                        <input
+                                        type="text"
+                                        v-model="searchQueryContracts"
+                                        placeholder="Buscar por nombre..."
+                                        class="w-full p-1 border text-gray-950 border-gray-300 rounded mb-4"
+                                        />
+                                        <!-- Fin campo de búsqueda -->
+                                        <div v-if="job_ranges.length" class="overflow-hidden rounded">
+                                            <table class="sm:w-[32rem] w-[24rem] sm:text-md text-sm text-left text-gray-500 dark:text-gray-400 bg-slate-600">
+                                                <thead>
+                                                    <tr class="justify-center item-center">
+                                                        <th class="text-center text-gray-900 dark:text-gray-100 border">ID</th>
+                                                        <th class="text-center text-gray-900 dark:text-gray-100 border">DATOS</th>
+                                                        <th class="text-center text-gray-900 dark:text-gray-100 border">EDITAR</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr v-for="(job, job_index) in paginatedContracts" :key="job.id" class="bg-white border dark:bg-gray-800 dark:border-gray-700">
+                                                        <td class="text-center text-sm text-gray-900 dark:text-green-300 bg-gray-700 py-1 border-y-2"> 
+                                                            <div>
+                                                                <span class="font-bold text-lg">{{ job.id }}</span> 
+                                                            </div>
+                                                        </td>
+                                                        <td class="text-center text-sm text-gray-900 dark:text-white bg-gray-700 py-1 border-y-2"> 
+                                                            <div class="flex-col justify-items-start">
+                                                                <div class="bg-gray-700 w-full flex justify-between px-2">
+                                                                    <span class="text-yellow-500 font-bold">Nombre:</span> {{ job.user_range.name }}
+                                                                </div>
+                                                                <div class="bg-gray-600 w-full flex justify-between px-2">
+                                                                    <span class="text-green-300 font-bold">Fecha de inicio:</span> {{ job.start_date }}
+                                                                </div>
+                                                                <div class="bg-gray-700 w-full flex justify-between px-2">
+                                                                    <span class="text-red-300 font-bold">Fecha de final:</span> {{ job.end_date }}
+                                                                </div>
+                                                                <div class="bg-gray-600 w-full flex justify-between px-2">
+                                                                    <span class="text-yellow-300 font-bold">Tipo de contrato:</span> {{ job.contract_type.name }}
+                                                                </div>
+                                                                <div class="bg-gray-700 w-full flex justify-between px-2">
+                                                                    <span class="text-yellow-300 font-bold">Horas laborables al día:</span> {{ job.contract_type.working_hours }}
+                                                                </div>
+                                                                <div class="bg-gray-600 w-full flex justify-between px-2">
+                                                                    <span class="text-yellow-300 font-bold">Fines de semana laborables:</span> <span v-if="job.work_on_freedays" class="text-green-400"> <i class="fa-solid fa-check"></i></span> <span v-else class="text-red-400"><i class="fa-solid fa-x"></i> </span>
+                                                                </div>
+                                                                <div class="bg-gray-700 w-full flex justify-between px-2">
+                                                                    <span class="text-cyan-200 font-bold">Departamento:</span> {{ job.user_range.department.name }}
+                                                                </div>
+                                                                <div class="bg-gray-600 w-full flex justify-between px-2">
+                                                                    <span class="text-cyan-200 font-bold">Vacaciones por mes:</span>  {{ job.user_range.department.holidays_per_month }}
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <!-- DEP.NAME SELECTOR -->
+                                                        <td class="text-center text-sm text-gray-900 dark:text-gray-100 bg-gray-700 py-1 border-y-2">
+    <!--                                                         <template v-if="isRowBeingEdited(job_index, 2) && edit_state.row === job_index && edit_state.table === 2">
+                                                                <input type="text" v-model="edit_state.selected_department_name" @input="validateTextInputDepName" :placeholder="dep.name" class="w-24 text-xs text-left bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded p-1">
+                                                            </template>
+                                                            <template v-else>
+                                                                {{ dep.name }}
+                                                            </template> -->
+                                                            <i class="text-lg text-yellow-300 fa-regular fa-pen-to-square"></i>
+                                                        </td>
+                                                        
+                                                        <!-- MAX VAC SELECTOR -->
+
+    <!--                                                         <template v-if="isRowBeingEdited(job_index, 2) && edit_state.row === job_index && edit_state.table === 2">
+                                                                <input type="number" min="0" max="5" v-model="edit_state.selected_department_users_same_day_holidays" @input="validateInputMaxVacationsPerDay" :placeholder="dep?.users_same_day_holidays" class="w-12 text-xs text-left bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded p-1">
+                                                            </template>
+                                                            <template v-else>
+                                                                {{ dep?.users_same_day_holidays }}
+                                                            </template> -->
+
+                                                        <!-- ZONE SELECTOR -->
+                                                        
+    <!--                                                         <template v-if="isRowBeingEdited(job_index, 2) && edit_state.row === job_index && edit_state.table === 2">
+                                                                <input type="number" min="0" max="5" v-model="edit_state.selected_department_holidays_per_month" @input="validateInputVacationsPerMonth" :placeholder="dep?.holidays_per_month" class="w-12 text-xs text-left bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded p-1">
+                                                            </template>
+                                                            <template v-else>
+                                                                {{ dep?.holidays_per_month }}
+                                                            </template> -->
+
+
+                                                        
+    <!--                                                         <template v-if="isRowBeingEdited(job_index, 2) && edit_state.row === job_index && edit_state.table === 2">
+                                                                <button @click="saveDepartmentChanges(dep.id)">
+                                                                    <i class="mx-1 text-lg text-green-400 fa-solid fa-check"></i>
+                                                                </button>
+                                                                <button @click="closeEditing(job_index, 2)">
+                                                                    <i class="mx-1 text-lg text-red-400 fa-solid fa-xmark"></i>
+                                                                </button>
+                                                            </template>
+                                                            <template v-else>
+                                                                <button @click="startEditing(job_index, 2)">
+                                                                    <i class="space-x-1 sm:ml-1 text-lg text-yellow-200 fa-regular fa-pen-to-square"></i>
+                                                                </button>
+                                                            </template> -->
+
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                            <div class="sm:w-[32rem] w-[24rem] sm:text-md text-sm text-left text-gray-100 dark:text-gray-400 bg-slate-600 px-2">
+                                                <button class="text-gray-500 border rounded px-1 bg-slate-200" :disabled="currentPageContracts === 1" :class="[(currentPageContracts===1) ? 'bg-slate-800' : '']" @click="currentPageContracts--">Anterior</button>
+                                                <span class="text-gray-100"> Pág. <<<span class="font-bold text-yellow-400 text-md">{{ currentPageContracts }}</span> de {{ totalPagesContracts }}>> </span>
+                                                <button class="text-gray-500 border rounded px-1 bg-slate-200" :disabled="currentPageContracts === totalPagesContracts" :class="[(currentPageContracts===totalPagesContracts) ? 'bg-slate-800' : '']" @click="currentPageContracts++"> Siguiente</button>
+                                            </div>
+                                        </div>
+                                        <div v-else>
+                                            <p class="text-red-400 py-8">Actualmente no hay ningún contrato activo.</p>
+                                        </div>
                                     </div>
                                     <!-- END SLOT -->
 

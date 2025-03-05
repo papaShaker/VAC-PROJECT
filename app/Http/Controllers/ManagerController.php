@@ -35,6 +35,15 @@ class ManagerController extends Controller
     }
 
     public function addJobRange(Request $request){
+        // Validate request data
+        $request->validate([
+            'new_start_date' => 'required|date|before:new_end_date',
+            'new_end_date' => 'required|date|after:new_start_date',
+            'user_id' => 'required|integer|exists:users,id',
+            'new_contract_type' => 'required|integer|exists:contract_types,id', // Foreign key validation
+            'new_work_on_freedays' => 'nullable|boolean',
+        ]);
+        
         try{
             $jobRange = new JobRange();
             $jobRange->start_date = $request->new_start_date;

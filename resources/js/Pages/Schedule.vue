@@ -853,10 +853,10 @@ onMounted(() => {
                             </thead>
                             <tbody>
                                 <!-- Loop through each user data array -->
-                                <tr v-for="(user, user_index) in weekly_schedule.schedule_data.users" :key="user_index" class=" bg-white border-b dark:bg-gray-800 dark:border-gray-500" :class="[(user[user_index].id == 8 || user[user_index].id == 9) ? 'reduced_contract' : '']">
+                                <tr v-for="(user, user_index) in weekly_schedule.schedule_data.users" :key="user_index" class=" bg-white border-b dark:bg-gray-800 dark:border-gray-500" :class="[(user[user_index].id == 8 || user[user_index].id == 9) || user[user_index].id == 28 ? 'reduced_contract' : '']">
                                     <td scope="row"
                                     class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l bg-gray-600 dark:border-gray-500 dark:text-white"
-                                    :class="[(user[user_index].id == 8 || user[user_index].id == 9) ? 'reduced_contract' : '',]"
+                                    :class="[(user[user_index].id == 8 || user[user_index].id == 9 || user[user_index].id == 28) ? 'reduced_contract' : '',]"
                                     >
                                         <template v-if="is_editing && edit_state.row === user_index && edit_state.table === weekly_schedule_index && userStore.hasPermission('edit schedules')">
                                             <i class="fa-solid fa-user"></i> {{ user[user_index].name }}
@@ -882,7 +882,7 @@ onMounted(() => {
                                     <td v-for="(schedule, schedule_index) in weekly_schedule.schedule_data.schedules[user_index]" :key="schedule_index" scope="row"
                                         class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l dark:border-gray-500 dark:text-white"
                                         :class="[(user[schedule_index].is_night_shift) ? 'is_night_shift' : '',
-                                                (schedule.start_time === '00:00' && schedule.end_time === '00:00' && (user[user_index].id == 8 || user[user_index].id == 9)) ? 'free_day reduced_contract' : 
+                                                (schedule.start_time === '00:00' && schedule.end_time === '00:00' && (user[user_index].id == 8 || user[user_index].id == 9 || user[user_index].id == 28)) ? 'free_day reduced_contract' : 
                                                 (schedule.start_time === '00:00' && schedule.end_time === '00:00' && (schedule.is_weekend_day)) ? 'free_day' : schedule.is_weekend_day ? 'free_day' : '', 
                                                 (user[schedule_index].is_holiday && user[schedule_index].holiday_state === 2) ? 'is_confirmed_holiday' : '', 
                                                 (user[schedule_index].is_holiday && user[schedule_index].holiday_state === 1) ? 'is_not_confirmed_holiday' : '', 
@@ -960,10 +960,10 @@ onMounted(() => {
                                     <tbody>
                                         <!-- Loop through each user data array -->
                                         <template v-if="weekly_schedule[0] && selected_week !== 'all'">
-                                            <tr v-for="(user, user_index) in weekly_schedule[0].schedule_data.users" :key="user_index" class=" bg-white border-b dark:bg-gray-800 dark:border-gray-500" :class="[(user[user_index].id == 8 || user[user_index].id == 9) ? 'reduced_contract' : '']">
+                                            <tr v-for="(user, user_index) in weekly_schedule[0].schedule_data.users" :key="user_index" class=" bg-white border-b dark:bg-gray-800 dark:border-gray-500" :class="[(user[user_index].id == 8 || user[user_index].id == 9 || user[user_index].id == 28) ? 'reduced_contract' : '']">
                                                 <td scope="row"
                                                     class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l bg-gray-600 dark:border-gray-500 dark:text-white"
-                                                    :class="[(user[user_index].id == 8 || user[user_index].id == 9) ? 'reduced_contract' : '',]"
+                                                    :class="[(user[user_index].id == 8 || user[user_index].id == 9 || user[user_index].id == 28) ? 'reduced_contract' : '',]"
                                                     >
                                                     <template v-if="is_editing && edit_state.row === user_index && userStore.hasPermission('edit schedules')">
                                                         <i class="fa-solid fa-user"></i> {{ user[user_index].name }}
@@ -989,7 +989,7 @@ onMounted(() => {
                                                 <td v-for="(schedule, schedule_index) in weekly_schedule[0].schedule_data.schedules[user_index]" :key="schedule_index" scope="row"
                                                     class="px-3 py-4 font-medium text-gray-900 whitespace-nowrap border-r border-l dark:border-gray-500 dark:text-white"
                                                     :class="[(user[schedule_index].is_night_shift) ? 'is_night_shift' : '',
-                                                            (schedule.start_time === '00:00' && schedule.end_time === '00:00' && (user[user_index].id == 8 || user[user_index].id == 9)) ? 'free_day reduced_contract' : 
+                                                            (schedule.start_time === '00:00' && schedule.end_time === '00:00' && (user[user_index].id == 8 || user[user_index].id == 9 || user[user_index].id == 28)) ? 'free_day reduced_contract' : 
                                                             (schedule.start_time === '00:00' && schedule.end_time === '00:00' && (schedule.is_weekend_day)) ? 'free_day' : schedule.is_weekend_day ? 'free_day' : '', 
                                                             (user[schedule_index].is_holiday && user[schedule_index].holiday_state ===2) ? 'is_confirmed_holiday' : '', 
                                                             (user[schedule_index].is_not_available) ? 'is_not_available' : '', ]">

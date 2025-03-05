@@ -374,14 +374,14 @@ class ScheduleController extends Controller
 
         $users_array = $users->toArray();
 
-        $exists = $users->contains(fn($user) => $user['id'] === 9); //CHECKS IF FIXED USER IS IN ARRAY
+        $exists = $users->contains(fn($user) => $user['id'] === 9 || $user['id'] === 28 || $user['id'] === 8); //CHECKS IF FIXED USER IS IN ARRAY
 
         if($rotation_index >= $available_users_limit_index){
             $rotation_index = 0;
         }
 
         foreach ($users_array as $index => $element) {
-            if ($element['id'] == 9 || $element['id'] == 8) {
+            if ($element['id'] == 9 || $element['id'] == 8 || $element['id'] == 28) {
                 $element_to_move = $element;
                 unset($users_array[$index]);
                 array_unshift($users_array, $element_to_move);
@@ -413,7 +413,7 @@ class ScheduleController extends Controller
                 $data['users'] = is_array($data['users']) ? $data['users'] : $data['users']->toArray(); //Ensure $data['users'] is an array.
                 
                 foreach($data['users'] as $index => $element) { //Loop to make sure these 2 users are always asigned the same schedules.
-                    if ($element['id'] == 9 || $element['id'] == 8) {
+                    if ($element['id'] == 9 || $element['id'] == 8 || $element['id'] == 28) {
                         $element_to_move = $element;
                         unset($data['users'][$index]);
                         array_unshift($data['users'], $element_to_move);
@@ -432,7 +432,7 @@ class ScheduleController extends Controller
                         $user->is_not_available = 0;
                         $user->is_night_shift = 0;
                         $user->holiday_state = $user_in_array['holiday_state'];
-                        $user->is_fixed = ($user_element['id'] == 9 || $user_element['id'] == 8) ? 1 : 0;
+                        $user->is_fixed = ($user_element['id'] == 9 || $user_element['id'] == 8 || $element['id'] == 28) ? 1 : 0;
                         $user_week[] = $user;
                         break;
                     }

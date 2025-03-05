@@ -319,6 +319,9 @@ const updateHolidays = (state) => {
             }).finally(() => {
                 modal_holidays_to_be_confirmed.loading = false;
                 closeModalInfoHolidays();
+                vac_states.length = 0;
+                selected_modal_holidays_to_be_confirmed.value = false
+                getHolidaysToBeConfirmed();
             });
     }
 }
